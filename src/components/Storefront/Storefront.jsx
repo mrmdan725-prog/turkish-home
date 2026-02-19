@@ -15,6 +15,20 @@ const Storefront = ({ products, settings, onSaveSale }) => {
         city: 'الأسكندرية'
     });
 
+    // Hero Slider Logic
+    const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
+    const heroImages = settings?.heroImages && settings.heroImages.length > 0
+        ? settings.heroImages
+        : (settings?.heroImage ? [settings.heroImage] : ["https://images.unsplash.com/photo-1616489953149-805e8bc8636e?auto=format&fit=crop&q=80&w=2000"]);
+
+    useEffect(() => {
+        if (heroImages.length <= 1) return;
+        const interval = setInterval(() => {
+            setCurrentHeroIndex(prev => (prev + 1) % heroImages.length);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [heroImages.length]);
+
     const categories = ['الكل', ...(settings?.categories || [])];
 
     // Only show products explicitely marked for online sale
@@ -140,7 +154,22 @@ const Storefront = ({ products, settings, onSaveSale }) => {
                     >
                         {/* Hero */}
                         <section className="store-hero">
-                            <img src="https://images.unsplash.com/photo-1616489953149-805e8bc8636e?auto=format&fit=crop&q=80&w=2000" className="hero-video-bg" alt="Hero" />
+                            <AnimatePresence mode="wait">
+                                <motion.img
+                                    key={currentHeroIndex}
+                                    src={heroImages[currentHeroIndex]}
+                                    className="hero-video-bg"
+                                    alt="Hero"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 0.8 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 1 }}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = "https://images.unsplash.com/photo-1616489953149-805e8bc8636e?auto=format&fit=crop&q=80&w=2000";
+                                    }}
+                                />
+                            </AnimatePresence>
                             <div className="hero-content">
                                 <h1>أناقتك تبدأ من تفاصيل منزلك</h1>
                                 <p>اكتشف تشكيلة "البيت التركي" الجديدة لأدوات المائدة والديكورات العتيقة التي تضفي سحراً خاصاً على كل ركن.</p>
@@ -357,22 +386,45 @@ const Storefront = ({ products, settings, onSaveSale }) => {
     );
 };
 
-const ProductCard = ({ product, onAdd }) => (
-    <div className="product-card">
-        <div className="product-img-wrapper">
-            <img src={product.image || 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=600'} alt={product.name} />
-            <div className="add-to-cart-overlay">
-                <button className="quick-add-btn" onClick={() => onAdd(product)}>
-                    <ShoppingBag size={18} /> إضافة للسلة
-                </button>
+const ProductCard = ({ product, onAdd }) => {
+    // Helper to validate image URLs
+    const getValidUrl = (url) => {
+        if (!url || typeof url !== 'string' || url.trim() === '') return null;
+        if (url.match(/^(http|https|data|blob):/i)) return url;
+        return null; // Reject local paths or junk
+    };
+
+    const placeholder = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=600';
+    const validMain = getValidUrl(product.image);
+    const validGallery = product.gallery && product.gallery.length > 0 ? getValidUrl(product.gallery[0]) : null;
+
+    const [imgSrc, setImgSrc] = useState(validMain || validGallery || placeholder);
+
+    useEffect(() => {
+        setImgSrc(getValidUrl(product.image) || (product.gallery && product.gallery[0] ? getValidUrl(product.gallery[0]) : null) || placeholder);
+    }, [product]);
+
+    return (
+        <div className="product-card">
+            <div className="product-img-wrapper">
+                <img
+                    src={imgSrc}
+                    alt={product.name}
+                    onError={() => setImgSrc(placeholder)}
+                />
+                <div className="add-to-cart-overlay">
+                    <button className="quick-add-btn" onClick={() => onAdd(product)}>
+                        <ShoppingBag size={18} /> إضافة للسلة
+                    </button>
+                </div>
+            </div>
+            <div className="product-info">
+                <div className="product-category">{product.category}</div>
+                <div className="product-name">{product.name}</div>
+                <div className="product-price">{(product.onlinePrice || product.price).toLocaleString()} ج.م</div>
             </div>
         </div>
-        <div className="product-info">
-            <div className="product-category">{product.category}</div>
-            <div className="product-name">{product.name}</div>
-            <div className="product-price">{(product.onlinePrice || product.price).toLocaleString()} ج.م</div>
-        </div>
-    </div>
-);
+    );
+};
 
 export default Storefront;

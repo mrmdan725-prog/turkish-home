@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Search, Printer, ShoppingCart, ArrowDownToLine, Filter, Tag, CheckCircle2, MoreVertical, Edit2, Trash2, History, TrendingUp, AlertTriangle, Layers, X, Save, DollarSign, Brain, Sparkles } from 'lucide-react';
+import { Package, Plus, Search, Printer, ShoppingCart, ArrowDownToLine, Filter, Tag, CheckCircle2, MoreVertical, Edit2, Trash2, History, TrendingUp, AlertTriangle, Layers, X, Save, DollarSign, Brain, Sparkles, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import Barcode from 'react-barcode';
 import './Inventory.css';
 
-const Inventory = ({ products, setProducts, settings, setPurchases }) => {
+const Inventory = ({ products, setProducts, settings, purchases = [], setPurchases }) => {
     const [view, setView] = useState('stock'); // 'stock', 'po', 'history'
     const [filterLowStock, setFilterLowStock] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -14,6 +14,13 @@ const Inventory = ({ products, setProducts, settings, setPurchases }) => {
     const [menuOpenFor, setMenuOpenFor] = useState(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
     const [isScanning, setIsScanning] = useState(false);
+
+    // AI Image Gen State
+    const [showAiModal, setShowAiModal] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isAiGenerating, setIsAiGenerating] = useState(false);
+    const [generatedPreviews, setGeneratedPreviews] = useState([]);
+    const [selectedPreview, setSelectedPreview] = useState(null);
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -72,18 +79,32 @@ const Inventory = ({ products, setProducts, settings, setPurchases }) => {
                     stock: qty,
                     minStock: 5,
                     barcode: (Math.floor(Math.random() * 9000000000000) + 1000000000000).toString(),
-                    category: item.category || 'عام'
+                    category: item.category || 'عام',
+                    showOnline: true // Default to true
                 });
             }
         });
 
+        // Generate Sequential ID
+        // If purchases list exists, find max ID. 
+        // We want short serials (1, 2, 3), but existing IDs might be timestamps (170...).
+        // Logic: Filter out timestamp-like IDs (> 1000000000) to find the max "serial".
+        // If max serial is 0, start at 1. Else max + 1.
+        // We keep 'id' as the main identifier.
+        const existingSerials = purchases
+            .map(p => p.id)
+            .filter(id => typeof id === 'number' && id < 1000000000); // Filter out timestamps
+
+        const nextId = existingSerials.length > 0 ? Math.max(...existingSerials) + 1 : 1;
+
         // Record the Purchase (Toreedat)
         const purchaseRecord = {
-            id: Date.now(),
+            id: nextId,
             date: new Date().toISOString(),
             total: totalOrderCost,
             supplier: supplier || 'مورد عام',
-            itemsCount: poItems.length
+            itemsCount: poItems.length,
+            items: poItems // Save the items details
         };
 
         if (setPurchases) {
@@ -129,12 +150,178 @@ const Inventory = ({ products, setProducts, settings, setPurchases }) => {
         // Supabase Sync
         if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL') {
             const { supabase } = await import('../../supabaseClient');
-            const poductData = { ...editingProduct };
-            delete poductData._edit_tab; // Clean temp internal state
-            await supabase.from('products').upsert(poductData);
+            const productData = {
+                id: editingProduct.id,
+                name: editingProduct.name,
+                price: editingProduct.price,
+                cost_price: editingProduct.costPrice || 0,
+                stock: editingProduct.stock || 0,
+                min_stock: editingProduct.minStock || 5,
+                barcode: editingProduct.barcode || '',
+                category: editingProduct.category || 'عام',
+                image: editingProduct.image || '',
+                gallery: editingProduct.gallery || [], // Support for multiple images
+                show_online: editingProduct.showOnline !== false, // Default to true if undefined
+                online_price: editingProduct.onlinePrice || null,
+                long_description: editingProduct.longDescription || ''
+            };
+            await supabase.from('products').upsert(productData);
         }
 
         setEditingProduct(null);
+    };
+
+    const handleUploadImage = async (file) => {
+        if (!file) return;
+        try {
+            const { supabase } = await import('../../supabaseClient');
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `products/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('product-images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(filePath);
+
+            return publicUrl;
+        } catch (err) {
+            console.error('Upload failed:', err);
+            alert('فشل رفع الصورة. تأكد من إعدادات Supabase Storage (product-images bucket).');
+            return null;
+        }
+    };
+
+    const handleAiGenerate = async () => {
+        if (!aiPrompt) return;
+        setIsAiGenerating(true);
+        setGeneratedPreviews([]); // Reset
+        setSelectedPreview(null);
+
+        try {
+            // 1. Check/Translate Arabic Prompt
+            let finalPrompt = aiPrompt;
+            const isArabic = /[\u0600-\u06FF]/.test(aiPrompt);
+
+            if (isArabic) {
+                try {
+                    // Use Pollinations Text API for lightweight translation
+                    // ENCODE THE PROMPT TO HANDLE SPACES AND SPECIAL CHARS
+                    const translationUrl = `https://text.pollinations.ai/Translate this to English: ${encodeURIComponent(aiPrompt)}`;
+                    const transRes = await fetch(translationUrl);
+                    if (transRes.ok) {
+                        const text = await transRes.text();
+                        if (text && text.length > 2) {
+                            console.log("Translated:", text);
+                            finalPrompt = text;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Translation skipped:", e);
+                }
+            }
+
+            // 2. Enhance Prompt (Truncate to avoid URL length issues)
+            const safePrompt = finalPrompt.length > 300 ? finalPrompt.substring(0, 300) : finalPrompt;
+            const enhancedPrompt = `professional product photography of ${safePrompt}, commercial catalog shot, studio lighting, 8k resolution, white background`;
+            const paddedPrompt = encodeURIComponent(enhancedPrompt);
+
+            // 3. Generate 4 Variations (Use 'turbo' for speed/reliability, remove dimensions to use default)
+            const seeds = Array.from({ length: 4 }, () => Math.floor(Math.random() * 1000000));
+
+            // Helper for delay
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+
+            const promises = seeds.map(async (seed) => {
+                // Using 'turbo' model for speed and less strict parameters
+                const cacheBust = Date.now();
+                const imageUrl = `https://image.pollinations.ai/prompt/${paddedPrompt}?seed=${seed}&nologo=true&model=turbo&t=${cacheBust}`;
+
+                let attempts = 0;
+                while (attempts < 3) {
+                    try {
+                        // Add a small staggered delay based on seed to avoid hitting rate limits simultaneously
+                        await delay(500 + (seed % 500));
+
+                        // Try to fetch blob for upload capability (and to verify image exists)
+                        const res = await fetch(imageUrl);
+                        if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
+                        const blob = await res.blob();
+                        const file = new File([blob], `ai-gen-${seed}.jpg`, { type: "image/jpeg" });
+                        // Create object URL for instant, reliable preview
+                        const objectUrl = URL.createObjectURL(blob);
+                        return { url: objectUrl, originalUrl: imageUrl, file, isBlob: true };
+                    } catch (e) {
+                        attempts++;
+                        console.warn(`Attempt ${attempts} failed for seed ${seed}:`, e);
+                        if (attempts >= 3) {
+                            // After retries, fallback to URL but log failure
+                            return { url: imageUrl, originalUrl: imageUrl, file: null, isBlob: false };
+                        }
+                        // Wait before retry
+                        await delay(1500);
+                    }
+                }
+            });
+
+            // Use allSettled so one failure doesn't break everything
+            const results = await Promise.allSettled(promises);
+
+            const successfulPreviews = results
+                .filter(r => r.status === 'fulfilled')
+                .map(r => r.value);
+
+            if (successfulPreviews.length > 0) {
+                setGeneratedPreviews(successfulPreviews);
+                setSelectedPreview(successfulPreviews[0]);
+            } else {
+                throw new Error("All image generations failed.");
+            }
+
+        } catch (err) {
+            console.error("AI Gen Error:", err);
+            alert('حدث خطأ أثناء التوليد. يرجى التأكد من الاتصال بالإنترنت والمحاولة مرة أخرى.');
+        } finally {
+            setIsAiGenerating(false);
+        }
+    };
+
+    const saveAiImage = async () => {
+        if (!selectedPreview) return;
+        setIsAiGenerating(true);
+
+        // Start with the remote URL as fallback (originalUrl or url)
+        // We prefer originalUrl because 'url' might be a blob: URL which is temporary
+        let finalImageUrl = selectedPreview.originalUrl || selectedPreview.url;
+
+        // Try to upload if we have a file (best practice)
+        if (selectedPreview.file) {
+            const uploadedUrl = await handleUploadImage(selectedPreview.file);
+            if (uploadedUrl) {
+                finalImageUrl = uploadedUrl;
+            } else {
+                console.warn("Upload failed, falling back to original URL");
+            }
+        }
+
+        if (finalImageUrl) {
+            const currentGallery = editingProduct.gallery || [];
+            if (!editingProduct.image) {
+                setEditingProduct({ ...editingProduct, image: finalImageUrl });
+            } else {
+                setEditingProduct({ ...editingProduct, gallery: [...currentGallery, finalImageUrl] });
+            }
+            setShowAiModal(false);
+            setGeneratedPreviews([]);
+            setSelectedPreview(null);
+            setAiPrompt('');
+        }
+        setIsAiGenerating(false);
     };
 
     const handleDeleteProduct = (productId) => {
@@ -584,23 +771,110 @@ const Inventory = ({ products, setProducts, settings, setPurchases }) => {
                                             </div>
                                             <input
                                                 type="checkbox"
-                                                checked={editingProduct.showOnline}
+                                                checked={editingProduct.showOnline !== false}
                                                 onChange={(e) => setEditingProduct({ ...editingProduct, showOnline: e.target.checked })}
                                                 style={{ width: '25px', height: '25px', accentColor: '#2e7d32' }}
                                             />
                                         </div>
 
                                         <div className="form-group-modern">
-                                            <label>رابط صورة المنتج (High Quality)</label>
-                                            <input
-                                                type="text"
-                                                placeholder="https://example.com/image.jpg"
-                                                value={editingProduct.image || ''}
-                                                onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                                            />
-                                            <p style={{ fontSize: '0.75rem', marginTop: '5px', color: '#666' }}>يفضل استخدام صور احترافية لزيادة المبيعات أونلاين.</p>
-                                        </div>
+                                            <label>معرض صور المنتج</label>
 
+                                            {/* AI & Upload Controls */}
+                                            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                                                <button
+                                                    type="button"
+                                                    className="upload-btn-secondary"
+                                                    onClick={() => document.getElementById('multi-upload-input').click()}
+                                                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px dashed #ccc', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                                >
+                                                    <ImageIcon size={18} />
+                                                    رفع صور من الجهاز
+                                                </button>
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    id="multi-upload-input"
+                                                    accept="image/*"
+                                                    style={{ display: 'none' }}
+                                                    onChange={async (e) => {
+                                                        const files = Array.from(e.target.files);
+                                                        for (const file of files) {
+                                                            const url = await handleUploadImage(file);
+                                                            if (url) {
+                                                                if (!editingProduct.image) {
+                                                                    setEditingProduct(prev => ({ ...prev, image: url }));
+                                                                } else {
+                                                                    setEditingProduct(prev => ({ ...prev, gallery: [...(prev.gallery || []), url] }));
+                                                                }
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="ai-gen-btn"
+                                                    onClick={() => {
+                                                        setAiPrompt(editingProduct.name + ' ' + (editingProduct.category || ''));
+                                                        setShowAiModal(true);
+                                                    }}
+                                                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                                >
+                                                    <Sparkles size={18} />
+                                                    توليد صورة بالذكاء الاصطناعي
+                                                </button>
+                                            </div>
+
+                                            {/* Gallery Grid */}
+                                            <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
+                                                {/* Main Image */}
+                                                {editingProduct.image && (
+                                                    <div className="gallery-item main" style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '2px solid #3b82f6' }}>
+                                                        <span style={{ position: 'absolute', top: 0, right: 0, background: '#3b82f6', color: 'white', fontSize: '10px', padding: '2px 6px', borderBottomLeftRadius: '8px' }}>الرئيسية</span>
+                                                        <img src={editingProduct.image} alt="Main" style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditingProduct({ ...editingProduct, image: '' })}
+                                                            style={{ position: 'absolute', bottom: '5px', left: '5px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer' }}
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {/* Gallery Images */}
+                                                {(editingProduct.gallery || []).map((img, idx) => (
+                                                    <div key={idx} className="gallery-item" style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #eee' }}>
+                                                        <img src={img} alt={`Gallery ${idx}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
+                                                        <div style={{ position: 'absolute', bottom: '0', width: '100%', display: 'flex', justifyContent: 'space-between', padding: '5px', background: 'rgba(0,0,0,0.3)' }}>
+                                                            <button
+                                                                type="button"
+                                                                title="تعيين كرئيسية"
+                                                                onClick={() => {
+                                                                    const oldMain = editingProduct.image;
+                                                                    const newGallery = editingProduct.gallery.filter((_, i) => i !== idx);
+                                                                    if (oldMain) newGallery.push(oldMain);
+                                                                    setEditingProduct({ ...editingProduct, image: img, gallery: newGallery });
+                                                                }}
+                                                                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
+                                                            >
+                                                                <CheckCircle2 size={14} />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newGallery = editingProduct.gallery.filter((_, i) => i !== idx);
+                                                                    setEditingProduct({ ...editingProduct, gallery: newGallery });
+                                                                }}
+                                                                style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer' }}
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                         <div className="form-group-modern">
                                             <label>سعر البيع أونلاين (اختياري)</label>
                                             <input
@@ -678,6 +952,95 @@ const Inventory = ({ products, setProducts, settings, setPurchases }) => {
                         <div className="modal-footer">
                             <button className="cancel-btn" onClick={() => setShowDeleteConfirm(null)}>إلغاء</button>
                             <button className="delete-btn-final" onClick={() => handleDeleteProduct(showDeleteConfirm.id)}>تأكيد الحذف</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Generation Modal */}
+            {showAiModal && (
+                <div className="modal-overlay" style={{ zIndex: 1100 }}>
+                    <div className="modern-modal" style={{ maxWidth: '500px' }}>
+                        <div className="modal-header">
+                            <h3><Sparkles size={20} style={{ color: '#8b5cf6' }} /> توليد صورة بالذكاء الاصطناعي</h3>
+                            <button className="close-btn" onClick={() => setShowAiModal(false)}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group-modern">
+                                <label>وصف الصورة (Prompt)</label>
+                                <textarea
+                                    value={aiPrompt}
+                                    onChange={(e) => setAiPrompt(e.target.value)}
+                                    placeholder="وصف المنتج لإنتاج الصورة..."
+                                    rows="3"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
+                                />
+                                <p style={{ fontSize: '0.75rem', color: '#666', marginTop: '5px' }}>سيتم إضافة "high quality product photography" تلقائياً للوصف للحصول على أفضل النتائج.</p>
+                            </div>
+
+                            {generatedPreviews.length > 0 && (
+                                <div className="generated-preview-grid" style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                                    {generatedPreviews.map((preview, idx) => (
+                                        <div
+                                            key={idx}
+                                            onClick={() => setSelectedPreview(preview)}
+                                            style={{
+                                                cursor: 'pointer',
+                                                border: selectedPreview === preview ? '3px solid #8b5cf6' : '3px solid transparent',
+                                                borderRadius: '12px',
+                                                overflow: 'hidden',
+                                                position: 'relative',
+                                                backgroundColor: '#f3f4f6',
+                                                minHeight: '150px'
+                                            }}
+                                        >
+                                            <img
+                                                src={preview.url}
+                                                alt={`AI Generated ${idx}`}
+                                                style={{ width: '100%', height: '150px', objectFit: 'cover', display: 'block' }}
+                                                referrerPolicy="no-referrer"
+                                                crossOrigin="anonymous"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.parentElement.innerHTML += '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444;font-size:12px;padding:10px;text-align:center;">فشل تحميل الصورة</div>';
+                                                }}
+                                            />
+                                            {selectedPreview === preview && (
+                                                <div style={{ position: 'absolute', top: 5, right: 5, background: '#8b5cf6', color: 'white', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <CheckCircle2 size={16} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+                            <button className="cancel-btn" onClick={() => setShowAiModal(false)}>إغلاق</button>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                {generatedPreviews.length === 0 ? (
+                                    <button
+                                        className="ai-gen-btn"
+                                        onClick={handleAiGenerate}
+                                        disabled={isAiGenerating}
+                                        style={{ background: isAiGenerating ? '#ccc' : '#8b5cf6', color: 'white', padding: '8px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    >
+                                        <Sparkles size={18} />
+                                        {isAiGenerating ? 'جاري الترجمة والتوليد...' : 'توليد الصور'}
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button className="cancel-btn" onClick={() => { setGeneratedPreviews([]); setAiPrompt(''); }} style={{ border: '1px solid #ccc' }}>إلغاء</button>
+                                        <button
+                                            onClick={saveAiImage}
+                                            disabled={isAiGenerating || !selectedPreview}
+                                            style={{ background: '#10b981', color: 'white', padding: '8px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                        >
+                                            {isAiGenerating ? 'جاري الحفظ...' : <><CheckCircle2 size={16} /> اعتماد الصورة المحددة</>}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

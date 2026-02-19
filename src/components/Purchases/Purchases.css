@@ -187,3 +187,129 @@
     text-align: center;
     color: #94a3b8;
 }
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modern-modal {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: slideUp 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-main);
+}
+
+.modal-subtitle {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.details-table th {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.details-table td {
+    font-size: 0.95rem;
+    color: var(--text-main);
+}
+
+.modal-footer {
+    padding: 20px 24px;
+    background: #F8FAFC;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.close-modal-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.close-modal-btn:hover {
+    background: #F1F5F9;
+    color: var(--text-main);
+}
+
+.secondary-btn {
+    padding: 10px 24px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.secondary-btn:hover {
+    background: #F1F5F9;
+    color: var(--text-main);
+}
+
+.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+    background-color: #f8fafc;
+}

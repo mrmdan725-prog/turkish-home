@@ -28,10 +28,11 @@ const Invoices = ({ sales, onReturn, settings }) => {
         }
     };
 
-    const filteredSales = sales.filter(sale =>
-        sale.orderId.toString().includes(searchTerm) ||
-        sale.date.includes(searchTerm)
-    );
+    const filteredSales = (sales || []).filter(sale => {
+        const orderIdStr = (sale.orderId || '').toString();
+        const dateStr = (sale.date || '').toString();
+        return orderIdStr.includes(searchTerm) || dateStr.includes(searchTerm);
+    });
 
     const openReturnModal = (sale) => {
         setSelectedInvoice(sale);
@@ -124,9 +125,9 @@ const Invoices = ({ sales, onReturn, settings }) => {
                                         <td colSpan="5" className="empty-row">لا توجد فواتير مسجلة</td>
                                     </tr>
                                 ) : (
-                                    filteredSales.map(sale => (
-                                        <tr key={sale.orderId}>
-                                            <td>#{sale.orderId}</td>
+                                    filteredSales.map((sale, index) => (
+                                        <tr key={sale.orderId || index}>
+                                            <td>#{sale.orderId || '---'}</td>
                                             <td>{formatDate(sale.date)}</td>
                                             <td>{getPaymentBadge(sale.paymentType)}</td>
                                             <td>{getStatusBadge(sale.status)}</td>

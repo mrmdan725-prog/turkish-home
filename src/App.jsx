@@ -114,22 +114,59 @@ function App() {
         const { data: cloudProducts } = await supabase.from('products').select('*');
         if (cloudProducts && cloudProducts.length > 0) {
           // Merge logic: For now, cloud wins for online-specific fields
+          // Merge logic: For now, cloud wins for online-specific fields
           setProducts(prev => {
             const merged = [...prev];
             cloudProducts.forEach(cp => {
-              const idx = merged.findIndex(p => p.id === cp.id);
-              if (idx > -1) merged[idx] = { ...merged[idx], ...cp };
-              else merged.push(cp);
+              const mapped = {
+                id: cp.id,
+                name: cp.name,
+                price: Number(cp.price),
+                costPrice: Number(cp.cost_price || 0),
+                stock: cp.stock || 0,
+                minStock: cp.min_stock || 5,
+                barcode: cp.barcode || '',
+                category: cp.category || 'عام',
+                image: cp.image || '',
+                gallery: cp.gallery || [],
+                showOnline: cp.show_online || false,
+                onlinePrice: cp.online_price ? Number(cp.online_price) : null,
+                longDescription: cp.long_description || ''
+              };
+              const idx = merged.findIndex(p => p.id === mapped.id);
+              if (idx > -1) merged[idx] = { ...merged[idx], ...mapped };
+              else merged.push(mapped);
             });
             return merged;
           });
         }
 
         const { data: cloudSales } = await supabase.from('sales').select('*').order('date', { ascending: false });
-        if (cloudSales) setSales(cloudSales);
+        if (cloudSales) {
+          setSales(cloudSales.map(s => ({
+            orderId: s.id,
+            date: s.date,
+            total: Number(s.total),
+            items: s.items,
+            paymentType: s.payment_type || 'cash',
+            customerName: s.customer_name || '',
+            customerPhone: s.customer_phone || '',
+            customerAddress: s.customer_address || '',
+            source: s.source || 'pos',
+            status: s.status || 'completed'
+          })));
+        }
 
         const { data: cloudCustomers } = await supabase.from('customers').select('*');
-        if (cloudCustomers) setCustomers(cloudCustomers);
+        if (cloudCustomers) {
+          setCustomers(cloudCustomers.map(c => ({
+            id: c.id,
+            name: c.name,
+            phone: c.phone || '',
+            debt: Number(c.debt || 0),
+            lastTransaction: c.last_transaction || null
+          })));
+        }
       } catch (error) {
         console.error('Supabase sync error:', error);
       }
@@ -348,7 +385,7 @@ function App() {
           />
         )}
         {activeTab === 'invoices' && <Invoices sales={sales} onReturn={handleReturn} settings={settings} />}
-        {activeTab === 'inventory' && <Inventory products={products} setProducts={setProducts} settings={settings} setPurchases={setPurchases} />}
+        {activeTab === 'inventory' && <Inventory products={products} setProducts={setProducts} settings={settings} purchases={purchases} setPurchases={setPurchases} />}
         {activeTab === 'customers' && (
           <Customers
             settings={settings}

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Settings as SettingsIcon, Store, Printer, Database, Bell, Shield, Save, RefreshCw, Image as ImageIcon, Upload, X as XIcon, MessageCircle, QrCode, CheckCircle2, Layers, Plus, Trash2, Lock, Unlock, Volume2 } from 'lucide-react';
 import './Settings.css';
 import Logo from '../Common/Logo';
+import { supabase } from '../../supabaseClient';
 
 const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, onCloudSync }) => {
     // Local state for editing before final save
@@ -11,7 +12,10 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
     const [newCategory, setNewCategory] = useState('');
     const [newExpenseCategory, setNewExpenseCategory] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const fileInputRef = useRef(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const logoInputRef = useRef(null);
+    const heroInputRef = useRef(null);
+    const restoreInputRef = useRef(null);
 
     const handleSave = () => {
         if (onSaveSettings) {
@@ -74,23 +78,51 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
         });
     };
 
-    const handleFileRestore = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    if (window.confirm('هل أنت متأكد؟ هذا الإجراء سيقوم بمسح كافة البيانات الحالية واستبدالها ببيانات ملف النسخة الاحتياطية.')) {
-                        onRestore(data);
-                        setSaved(true);
-                    }
-                } catch (err) {
-                    alert('خطأ في قراءة ملف النسخة الاحتياطية. يرجى التأكد من صحة الملف.');
-                }
-            };
-            reader.readAsText(file);
+    const handleHeroUpload = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        setIsUploading(true);
+        const newImages = [];
+
+        try {
+            for (const file of files) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `hero-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const filePath = `${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('product-images')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('product-images')
+                    .getPublicUrl(filePath);
+
+                newImages.push(publicUrl);
+            }
+
+            const currentImages = localSettings.heroImages || (localSettings.heroImage ? [localSettings.heroImage] : []);
+            setLocalSettings({ ...localSettings, heroImages: [...currentImages, ...newImages] });
+
+        } catch (error) {
+            console.error('Error uploading hero images:', error);
+            alert('فشل رفع الصور. يرجى التأكد من الاتصال بالإنترنت.');
+        } finally {
+            setIsUploading(false);
+            // Reset input
+            if (heroInputRef.current) heroInputRef.current.value = '';
         }
+    };
+
+    const removeHeroImage = (indexToRemove) => {
+        const currentImages = localSettings.heroImages || [];
+        setLocalSettings({
+            ...localSettings,
+            heroImages: currentImages.filter((_, index) => index !== indexToRemove)
+        });
     };
 
     return (
@@ -164,9 +196,9 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
                                                 <button className="remove-logo-btn" onClick={removeLogo}><XIcon size={14} /></button>
                                             </div>
                                         ) : (
-                                            <div className="logo-preview-wrapper" style={{ padding: '10px', borderRadius: '8px', cursor: 'pointer', border: '1px dashed var(--border-color)', position: 'relative' }} onClick={() => fileInputRef.current.click()}>
+                                            <div className="logo-preview-wrapper" style={{ padding: '10px', borderRadius: '8px', cursor: 'pointer', border: '1px dashed var(--border-color)', position: 'relative' }} onClick={() => logoInputRef.current.click()}>
                                                 <Logo size={80} showText={false} color="#4B2C20" />
-                                                <input type="file" ref={fileInputRef} accept="image/*" onChange={handleLogoUpload} hidden />
+                                                <input type="file" ref={logoInputRef} accept="image/*" onChange={handleLogoUpload} hidden />
                                                 <div style={{ position: 'absolute', bottom: '-20px', fontSize: '0.7rem', color: 'var(--text-muted)', width: '100%', textAlign: 'center' }}>انقر لتغيير الشعار</div>
                                             </div>
                                         )}
@@ -318,12 +350,12 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
                                     <p>حفظ نسخة من كافة البيانات (أصناف، عملاء، فواتير) في ملف خارجي.</p>
                                     <button className="backup-btn">بدء النسخ</button>
                                 </div>
-                                <div className="action-card warning" onClick={() => fileInputRef.current.click()}>
+                                <div className="action-card warning" onClick={() => restoreInputRef.current.click()}>
                                     <RefreshCw size={32} />
                                     <h4>استعادة البيانات</h4>
                                     <input
                                         type="file"
-                                        ref={fileInputRef}
+                                        ref={restoreInputRef}
                                         onChange={handleFileRestore}
                                         accept=".json"
                                         hidden
@@ -445,6 +477,60 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
                                         <p style={{ fontSize: '0.75rem', color: '#64748b' }}>إغلاق/فتح الموقع للجمهور مؤقتاً</p>
                                     </div>
                                     <input type="checkbox" checked={localSettings.isOnlineOpen} onChange={(e) => setLocalSettings({ ...localSettings, isOnlineOpen: e.target.checked })} />
+                                </div>
+
+                                <div className="form-group full-width">
+                                    <label>صور العرض الرئيسية (Slider Images)</label>
+
+                                    <div className="hero-images-manager" style={{ marginTop: '10px' }}>
+                                        <div className="hero-images-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px', marginBottom: '15px' }}>
+                                            {(localSettings.heroImages || (localSettings.heroImage ? [localSettings.heroImage] : [])).map((img, idx) => (
+                                                <div key={idx} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '100px', border: '1px solid #eee' }}>
+                                                    <img src={img} alt={`Hero ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <button
+                                                        onClick={() => removeHeroImage(idx)}
+                                                        style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(255,255,255,0.9)', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                                    >
+                                                        <XIcon size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+
+                                            <div
+                                                onClick={() => heroInputRef.current.click()}
+                                                style={{
+                                                    height: '100px',
+                                                    border: '2px dashed #cbd5e1',
+                                                    borderRadius: '12px',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    color: '#64748b',
+                                                    backgroundColor: '#f8fafc'
+                                                }}
+                                            >
+                                                {isUploading ? (
+                                                    <RefreshCw size={24} className="spin" />
+                                                ) : (
+                                                    <>
+                                                        <Plus size={24} />
+                                                        <span style={{ fontSize: '0.8rem', marginTop: '5px' }}>إضافة صورة</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            ref={heroInputRef}
+                                            onChange={handleHeroUpload}
+                                            hidden
+                                        />
+                                    </div>
+                                    <p style={{ fontSize: '0.75rem', marginTop: '5px', color: '#64748b' }}>يمكنك رفع صور متعددة لتظهر بشكل متحرك (Slider) في واجهة المتجر.</p>
                                 </div>
 
                                 <div className="form-group">

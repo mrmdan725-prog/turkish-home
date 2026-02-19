@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, Plus, Trash2, Calendar, User, DollarSign, Package, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, Search, Plus, Trash2, Calendar, User, DollarSign, Package, CheckCircle2, X, Archive } from 'lucide-react';
 import './Purchases.css';
 
 const Purchases = ({ purchases = [], products = [], setPurchases, settings = {} }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedPurchase, setSelectedPurchase] = useState(null);
 
     // Date formatter helper
     const formatDate = (dateStr) => {
@@ -96,7 +97,12 @@ const Purchases = ({ purchases = [], products = [], setPurchases, settings = {} 
                                     </tr>
                                 ) : (
                                     filteredPurchases.map(p => (
-                                        <tr key={p.id}>
+                                        <tr
+                                            key={p.id}
+                                            onDoubleClick={() => setSelectedPurchase(p)}
+                                            className="clickable-row"
+                                            title="انقر مرتين لعرض التفاصيل"
+                                        >
                                             <td className="bold-id">#{p.id.toString().slice(-6)}</td>
                                             <td>{formatDate(p.date)}</td>
                                             <td>
@@ -125,6 +131,71 @@ const Purchases = ({ purchases = [], products = [], setPurchases, settings = {} 
                     </div>
                 </div>
             </div>
+            {selectedPurchase && (
+                <div className="modal-overlay">
+                    <div className="modern-modal" style={{ maxWidth: '800px', width: '90%' }}>
+                        <div className="modal-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <ShoppingBag size={24} color="#4B2C20" />
+                                <div>
+                                    <h3>تفاصيل طلب الشراء #{selectedPurchase.id.toString().slice(-6)}</h3>
+                                    <span className="modal-subtitle">{formatDate(selectedPurchase.date)} - {selectedPurchase.supplier || 'مورد عام'}</span>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedPurchase(null)} className="close-modal-btn">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '20px' }}>
+                            {selectedPurchase.items && selectedPurchase.items.length > 0 ? (
+                                <table className="details-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                        <tr>
+                                            <th style={{ padding: '12px', textAlign: 'right' }}>الصنف</th>
+                                            <th style={{ padding: '12px', textAlign: 'center' }}>الكمية</th>
+                                            <th style={{ padding: '12px', textAlign: 'center' }}>سعر التكلفة</th>
+                                            <th style={{ padding: '12px', textAlign: 'center' }}>سعر البيع</th>
+                                            <th style={{ padding: '12px', textAlign: 'center' }}>الإجمالي</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedPurchase.items.map((item, idx) => (
+                                            <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                <td style={{ padding: '12px' }}>
+                                                    <strong>{item.name}</strong>
+                                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.category}</div>
+                                                </td>
+                                                <td style={{ padding: '12px', textAlign: 'center' }}>{item.quantity}</td>
+                                                <td style={{ padding: '12px', textAlign: 'center' }}>{parseFloat(item.costPrice || 0).toLocaleString()} ج.م</td>
+                                                <td style={{ padding: '12px', textAlign: 'center' }}>{parseFloat(item.salePrice || 0).toLocaleString()} ج.م</td>
+                                                <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+                                                    {(parseFloat(item.costPrice || 0) * parseInt(item.quantity || 0)).toLocaleString()} ج.م
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot style={{ background: '#f8fafc', borderTop: '2px solid #e2e8f0' }}>
+                                        <tr>
+                                            <td colSpan="4" style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>إجمالي الفاتورة:</td>
+                                            <td style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', color: '#2e7d32', fontSize: '1.1rem' }}>
+                                                {selectedPurchase.total.toLocaleString()} ج.م
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            ) : (
+                                <div className="empty-state-modal" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                                    <Archive size={48} style={{ marginBottom: '15px', opacity: 0.5 }} />
+                                    <p>لا توجد تفاصيل تفصيلية مسجلة لهذا الطلب (سجل قديم).</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer" style={{ justifyContent: 'flex-end', borderTop: '1px solid #eee', padding: '15px' }}>
+                            <button className="secondary-btn" onClick={() => setSelectedPurchase(null)}>إغلاق</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

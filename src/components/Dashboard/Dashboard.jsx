@@ -18,9 +18,14 @@ const Dashboard = ({ sales = [], products = [], customers = [], expenses = [], s
     const today = new Date().toDateString();
 
     const todayStats = useMemo(() => {
-        const todaySales = sales.filter(s => {
+        const todaySales = (sales || []).filter(s => {
+            if (!s?.date) return false;
             const d = s.date.includes(',') ? s.date.split(',')[0].trim() : s.date;
-            return new Date(d).toDateString() === today && s.status !== 'refunded';
+            try {
+                return new Date(d).toDateString() === today && s.status !== 'refunded';
+            } catch (e) {
+                return false;
+            }
         });
 
         const revenue = todaySales.reduce((sum, s) => sum + s.total, 0);
