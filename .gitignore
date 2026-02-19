@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+dist/
+dist-electron/
+dist-app/
+release/
+
+# Environment Variables (IMPORTANT: Never upload these)
+.env
+web/.env
+
+# IDE / OS Files
+.vscode/
+.DS_Store
+*.log
+
+# Build files
+out/
+build/
