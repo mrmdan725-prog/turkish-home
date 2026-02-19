@@ -12,22 +12,33 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
+            webSecurity: false // Disabled to allow CORS requests (Supabase, AI, etc.)
         },
         title: "البيت التركي - نسخة سطح المكتب",
+        autoHideMenuBar: true
     });
 
-    const startUrl = isDev
-        ? 'http://localhost:5173'
-        : `file://${path.join(__dirname, '../dist/index.html')}`;
-
-    console.log('Loading start URL:', startUrl);
-    win.loadURL(startUrl);
-
     if (isDev) {
+        win.loadURL('http://localhost:5173');
         win.webContents.openDevTools({ mode: 'detach' });
+        console.log('Loaded development URL');
+    } else {
+        // Production: Load from file system
+        // Use loadFile for better path handling
+        const indexHtml = path.join(__dirname, '../dist/index.html');
+        console.log('Loading production file:', indexHtml);
+
+        win.loadFile(indexHtml).catch(e => {
+            console.error('Failed to load file:', e);
+        });
+
+        // Remove menu in production
+        win.setMenu(null);
     }
 
-    win.setMenu(null);
+    win.on('closed', () => {
+        console.log('Window closed');
+    });
 }
 
 app.whenReady().then(() => {
