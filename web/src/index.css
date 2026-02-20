@@ -628,7 +628,7 @@ button {
     font-size: 2rem;
     font-weight: 900;
     color: var(--store-brown);
-    marginBottom: 20px;
+    margin-bottom: 20px;
 }
 
 .product-desc {
