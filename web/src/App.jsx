@@ -12,6 +12,7 @@ const App = () => {
     const [selectedCategory, setSelectedCategory] = useState('الكل');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [activeModalImg, setActiveModalImg] = useState(null);
     const [checkoutStatus, setCheckoutStatus] = useState('browsing'); // browsing, checkout, success
     const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
 
@@ -224,7 +225,17 @@ const App = () => {
 
                         <div className="product-grid">
                             {filteredProducts.map(p => (
-                                <ProductCard key={p.id} product={p} onAdd={addToCart} onOpen={() => setSelectedProduct(p)} placeholder={placeholderImg} ensureValidUrl={ensureValidUrl} />
+                                <ProductCard
+                                    key={p.id}
+                                    product={p}
+                                    onAdd={addToCart}
+                                    onOpen={() => {
+                                        setSelectedProduct(p);
+                                        setActiveModalImg(null); // Reset for new product
+                                    }}
+                                    placeholder={placeholderImg}
+                                    ensureValidUrl={ensureValidUrl}
+                                />
                             ))}
                         </div>
                     </main>
@@ -341,7 +352,36 @@ const App = () => {
                             <button className="modal-close-btn" onClick={() => setSelectedProduct(null)}><X /></button>
                             <div className="modal-content-grid">
                                 <div className="modal-image-side">
-                                    <img src={ensureValidUrl(selectedProduct.image) || (selectedProduct.gallery && selectedProduct.gallery.length > 0 ? ensureValidUrl(selectedProduct.gallery[0]) : null) || placeholderImg} alt={selectedProduct.name} />
+                                    <div className="main-modal-img">
+                                        <img src={activeModalImg || ensureValidUrl(selectedProduct.image) || (selectedProduct.gallery && selectedProduct.gallery.length > 0 ? ensureValidUrl(selectedProduct.gallery[0]) : null) || placeholderImg} alt={selectedProduct.name} />
+                                    </div>
+
+                                    {(selectedProduct.gallery && selectedProduct.gallery.length > 0) && (
+                                        <div className="modal-gallery-thumbs">
+                                            {/* Primary Image Thumb */}
+                                            <div
+                                                className={`thumb-box ${(!activeModalImg || activeModalImg === ensureValidUrl(selectedProduct.image)) ? 'active' : ''}`}
+                                                onClick={() => setActiveModalImg(ensureValidUrl(selectedProduct.image))}
+                                            >
+                                                <img src={ensureValidUrl(selectedProduct.image) || placeholderImg} alt="thumb-main" />
+                                            </div>
+
+                                            {/* Gallery Thumbs */}
+                                            {selectedProduct.gallery.map((img, idx) => {
+                                                const validImg = ensureValidUrl(img);
+                                                if (!validImg) return null;
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className={`thumb-box ${activeModalImg === validImg ? 'active' : ''}`}
+                                                        onClick={() => setActiveModalImg(validImg)}
+                                                    >
+                                                        <img src={validImg} alt={`thumb-${idx}`} />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="modal-info-side">
                                     <span className="brand-badge-small">أصلي 100%</span>

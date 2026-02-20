@@ -9,6 +9,7 @@ CREATE TABLE products (
   barcode TEXT,
   category TEXT,
   image TEXT,
+  gallery JSONB DEFAULT '[]'::jsonb,
   show_online BOOLEAN DEFAULT false,
   online_price DECIMAL(10,2),
   long_description TEXT,
