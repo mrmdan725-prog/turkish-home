@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingBag, X, Plus, Minus, Search, Clock, Home, CheckCircle, ChevronRight, Eye, Phone, MapPin, Instagram, Facebook, Star, LayoutGrid, Heart, Zap, Package, Sparkles, Soup } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './supabase';
+import './index.css';
 
 const App = () => {
     const [products, setProducts] = useState([]);
@@ -9,10 +10,10 @@ const App = () => {
     const [cart, setCart] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('الكل');
-    const [checkoutStatus, setCheckoutStatus] = useState('browsing'); // 'browsing', 'checkout', 'success'
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedProduct, setSelectedProduct] = useState(null); // For Product Details Modal
-    const [orderInfo, setOrderInfo] = useState({ name: '', phone: '', address: '' });
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [checkoutStatus, setCheckoutStatus] = useState('browsing'); // browsing, checkout, success
+    const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
 
     // Fetch data from Supabase
     useEffect(() => {
@@ -24,6 +25,8 @@ const App = () => {
                     .eq('show_online', true);
 
                 if (error) throw error;
+                // Map database fields (snake_case) to app fields (camelCase) if needed
+                // But web/src/App.jsx uses p.image, p.price, p.online_price
                 setProducts(data || []);
             } catch (err) {
                 console.error("Error fetching products:", err);
@@ -31,11 +34,21 @@ const App = () => {
                 setLoading(false);
             }
         };
-
         fetchData();
     }, []);
 
     const categories = ['الكل', ...new Set(products.map(p => p.category))];
+
+    const getCategoryIcon = (cat) => {
+        switch (cat) {
+            case 'أطقم حلل': return <Soup size={28} />;
+            case 'أجهزة كهربائية': return <Zap size={28} />;
+            case 'رفايع': return <Package size={28} />;
+            case 'منظفات': return <Sparkles size={28} />;
+            case 'الكل': return <LayoutGrid size={28} />;
+            default: return <Home size={28} />;
+        }
+    };
 
     const filteredProducts = products.filter(p => {
         const matchesCategory = selectedCategory === 'الكل' || p.category === selectedCategory;
@@ -67,25 +80,25 @@ const App = () => {
 
     const cartTotal = cart.reduce((sum, item) => sum + ((item.online_price || item.price || 0) * item.quantity), 0);
 
-    const getCategoryIcon = (cat) => {
-        switch (cat) {
-            case 'أطقم حلل': return <Soup size={28} />;
-            case 'أجهزة كهربائية': return <Zap size={28} />;
-            case 'رفايع': return <Package size={28} />;
-            case 'منظفات': return <Sparkles size={28} />;
-            case 'الكل': return <LayoutGrid size={28} />;
-            default: return <Home size={28} />;
+    const placeholderImg = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=1200';
+
+    const ensureValidUrl = (url) => {
+        if (!url || typeof url !== 'string' || url.trim() === '') return null;
+        if (url.startsWith('http') || url.startsWith('https') || url.startsWith('/')) {
+            if (url.includes(':\\')) return null;
+            return url;
         }
+        return null;
     };
 
-    const handleCheckout = async (e) => {
-        e.preventDefault();
+    const handlePlaceOrder = async (e) => {
+        if (e) e.preventDefault();
         const orderData = {
-            id: `WEB-${Math.floor(Number(Date.now().toString().slice(-6)) + Math.random() * 1000)}`,
+            id: 'WEB-' + (Date.now()).toString().slice(-6),
             date: new Date().toISOString(),
-            customer_name: orderInfo.name,
-            customer_phone: orderInfo.phone,
-            customer_address: orderInfo.address,
+            customer_name: customerInfo.name,
+            customer_phone: customerInfo.phone,
+            customer_address: customerInfo.address,
             total: cartTotal,
             items: cart,
             source: 'online',
@@ -105,18 +118,6 @@ const App = () => {
         }
     };
 
-    const placeholderImg = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=1200';
-
-    const ensureValidUrl = (url) => {
-        if (!url || typeof url !== 'string' || url.trim() === '') return null;
-        if (url.startsWith('http') || url.startsWith('https') || url.startsWith('/')) {
-            // Avoid local paths like C:\
-            if (url.includes(':\\')) return null;
-            return url;
-        }
-        return null;
-    };
-
     if (loading) return (
         <div className="loader-container">
             <div className="loader"></div>
@@ -125,7 +126,7 @@ const App = () => {
     );
 
     return (
-        <div className="store-wrapper" dir="rtl">
+        <div className="store-container" dir="rtl">
             {/* Header */}
             <header className="store-header">
                 <div className="container nav-content">
@@ -155,161 +156,112 @@ const App = () => {
                 </div>
             </header>
 
-            {/* Hero Section */}
-            <section className="hero">
-                <div className="hero-overlay"></div>
-                <div className="container hero-content">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8 }}
-                    >
-                        <span className="hero-tag">تشكيلة 2024</span>
-                        <h1>نسجنا لكِ الجمال في كل قطعة</h1>
-                        <p>اكتشف عالم الأناقة التركية في منزلك مع أرقى الأدوات المنزلية المختارة بعناية لتناسب ذوقك الرفيع.</p>
-                        <div className="hero-btns">
-                            <button className="btn-primary" onClick={() => document.getElementById('shop').scrollIntoView({ behavior: 'smooth' })}>
-                                تسوقي الآن <ChevronRight size={20} />
-                            </button>
-                            <button className="btn-secondary">
-                                رؤية المجموعة <LayoutGrid size={18} />
-                            </button>
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Features Bar */}
-            <section className="features-bar">
-                <div className="container features-grid">
-                    <div className="feature-item">
-                        <Clock size={24} />
-                        <div>
-                            <h4>توصيل سريع</h4>
-                            <p>لكافة محافظات الجمهورية</p>
-                        </div>
-                    </div>
-                    <div className="feature-item">
-                        <Star size={24} />
-                        <div>
-                            <h4>جودة مضمونة</h4>
-                            <p>خامات تركية أصلية</p>
-                        </div>
-                    </div>
-                    <div className="feature-item">
-                        <Phone size={24} />
-                        <div>
-                            <h4>دعم 24/7</h4>
-                            <p>متواجدون دائماً لخدمتك</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <main className="container main-content" id="shop">
-                <div className="category-section">
-                    <h2 className="section-title">تصفحي حسب الفئة</h2>
-                    <div className="cat-circles-wrapper">
-                        {categories.map(cat => (
-                            <button
-                                key={cat}
-                                className={`cat-circle-btn ${selectedCategory === cat ? 'active' : ''}`}
-                                onClick={() => setSelectedCategory(cat)}
-                            >
-                                <div className="icon-wrapper">
-                                    {getCategoryIcon(cat)}
-                                </div>
-                                <span>{cat}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Products Grid */}
-                <div className="product-grid">
-                    <AnimatePresence>
-                        {filteredProducts.map(p => (
-                            <motion.div
-                                key={p.id}
-                                layout
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="product-card"
-                            >
-                                <div className="product-image-wrapper">
-                                    <div className="card-actions">
-                                        <button className="circle-btn" onClick={() => addToCart(p)}><ShoppingBag size={18} /></button>
-                                        <button className="circle-btn" onClick={() => setSelectedProduct(p)}><Eye size={18} /></button>
-                                        <button className="circle-btn"><Heart size={18} /></button>
-                                    </div>
-                                    <img
-                                        src={ensureValidUrl(p.image) || (p.gallery && p.gallery.length > 0 ? ensureValidUrl(p.gallery[0]) : null) || placeholderImg}
-                                        className="product-image"
-                                        alt={p.name}
-                                        loading="lazy"
-                                        onError={(e) => { e.target.onerror = null; e.target.src = placeholderImg; }}
-                                    />
-                                    {p.online_price && p.online_price < p.price && (
-                                        <span className="sale-tag">خصم</span>
-                                    )}
-                                </div>
-                                <div className="product-info">
-                                    <span className="product-category-tag">{p.category || 'عام'}</span>
-                                    <h3 className="product-name">{p.name}</h3>
-                                    <div className="product-meta">
-                                        <div className="product-price">
-                                            {Number(p.online_price || p.price || 0).toLocaleString()} <span className="currency">ج.م</span>
-                                            {p.online_price && p.online_price < p.price && (
-                                                <span className="old-price">{Number(p.price).toLocaleString()} ج.م</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <button className="add-btn-minimal" onClick={() => addToCart(p)}>
-                                        <Plus size={16} /> إضافة للسلة
+            <AnimatePresence mode="wait">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    {/* Hero */}
+                    <section className="hero">
+                        <div className="hero-overlay"></div>
+                        <div className="container hero-content">
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+                                <span className="hero-tag">تشكيلة 2024</span>
+                                <h1>أناقتك تبدأ من تفاصيل منزلك</h1>
+                                <p>اكتشف عالم الأناقة التركية في منزلك مع أرقى الأدوات المنزلية المختارة بعناية.</p>
+                                <div className="hero-btns">
+                                    <button className="btn-primary" onClick={() => document.getElementById('shop').scrollIntoView({ behavior: 'smooth' })}>
+                                        تسوقي الآن <ChevronRight size={20} />
                                     </button>
+                                    <button className="btn-secondary">عن البيت التركي</button>
                                 </div>
                             </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </div>
-            </main>
+                        </div>
+                    </section>
 
-            {/* Testimonials */}
-            <section className="testimonials">
-                <div className="container">
-                    <h2 className="section-title text-center">ماذا يقول عملاؤنا</h2>
-                    <div className="testimonials-grid">
-                        <div className="testimonial-card">
-                            <div className="stars"><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /></div>
-                            <p>"خامات فوق الممتازة ذوق عالي جداً وتعاملي معهم مستمر"</p>
-                            <h5>سارة أحمد</h5>
+                    {/* Features Bar */}
+                    <section className="features-bar">
+                        <div className="container features-grid">
+                            <div className="feature-item">
+                                <Clock size={24} />
+                                <div>
+                                    <h4>توصيل سريع</h4>
+                                    <p>لكافة محافظات الجمهورية</p>
+                                </div>
+                            </div>
+                            <div className="feature-item">
+                                <Star size={24} />
+                                <div>
+                                    <h4>جودة مضمونة</h4>
+                                    <p>خامات تركية أصلية</p>
+                                </div>
+                            </div>
+                            <div className="feature-item">
+                                <Phone size={24} />
+                                <div>
+                                    <h4>دعم 24/7</h4>
+                                    <p>متواجدون دائماً لخدمتك</p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="testimonial-card">
-                            <div className="stars"><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /></div>
-                            <p>"التوصيل كان سريع جداً والمنتج وصل بحالة ممتازة"</p>
-                            <h5>محمد علي</h5>
+                    </section>
+
+                    {/* Shop Content */}
+                    <main className="container main-content" id="shop" style={{ padding: '60px 0' }}>
+                        <h2 style={{ fontSize: '2rem', marginBottom: '30px', color: 'var(--store-brown)' }}>تصفحي مجموعتنا</h2>
+
+                        <div className="cat-circles-wrapper" style={{ marginBottom: '40px' }}>
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    className={`cat-circle-btn ${selectedCategory === cat ? 'active' : ''}`}
+                                    onClick={() => setSelectedCategory(cat)}
+                                >
+                                    <div className="icon-wrapper">
+                                        {getCategoryIcon(cat)}
+                                    </div>
+                                    <span>{cat}</span>
+                                </button>
+                            ))}
                         </div>
-                        <div className="testimonial-card">
-                            <div className="stars"><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /><Star size={16} fill="gold" color="gold" /></div>
-                            <p>"أفضل متجر لتجهيز العرايس في مصر فعلاً ذوق تركي أصيل"</p>
-                            <h5>ليلى مراد</h5>
+
+                        <div className="product-grid">
+                            {filteredProducts.map(p => (
+                                <ProductCard key={p.id} product={p} onAdd={addToCart} onOpen={() => setSelectedProduct(p)} placeholder={placeholderImg} ensureValidUrl={ensureValidUrl} />
+                            ))}
                         </div>
-                    </div>
-                </div>
-            </section>
+                    </main>
+
+                    {/* Testimonials */}
+                    <section className="testimonials" style={{ background: 'var(--store-beige)', padding: '80px 0' }}>
+                        <div className="container">
+                            <h2 style={{ textAlign: 'center', marginBottom: '40px', color: 'var(--store-brown)' }}>ماذا يقول عملاؤنا</h2>
+                            <div className="testimonials-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
+                                <div className="testimonial-card" style={{ background: 'white', padding: '30px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+                                    <div style={{ display: 'flex', gap: '5px', marginBottom: '15px' }}>{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="var(--store-gold)" color="var(--store-gold)" />)}</div>
+                                    <p>"خامات فوق الممتازة ذوق عالي جداً وتعاملي معهم مستمر"</p>
+                                    <h5 style={{ marginTop: '15px', color: 'var(--store-brown)' }}>سارة أحمد</h5>
+                                </div>
+                                <div className="testimonial-card" style={{ background: 'white', padding: '30px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+                                    <div style={{ display: 'flex', gap: '5px', marginBottom: '15px' }}>{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="var(--store-gold)" color="var(--store-gold)" />)}</div>
+                                    <p>"التوصيل كان سريع جداً والمنتج وصل بحالة ممتازة"</p>
+                                    <h5 style={{ marginTop: '15px', color: 'var(--store-brown)' }}>محمد علي</h5>
+                                </div>
+                                <div className="testimonial-card" style={{ background: 'white', padding: '30px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+                                    <div style={{ display: 'flex', gap: '5px', marginBottom: '15px' }}>{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="var(--store-gold)" color="var(--store-gold)" />)}</div>
+                                    <p>"أفضل متجر لتجهيز العرايس في مصر فعلاً ذوق تركي أصيل"</p>
+                                    <h5 style={{ marginTop: '15px', color: 'var(--store-brown)' }}>ليلى مراد</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </motion.div>
+            </AnimatePresence>
 
             {/* Cart Drawer */}
             <AnimatePresence>
                 {isCartOpen && (
                     <div className="drawer-overlay" onClick={() => setIsCartOpen(false)}>
                         <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="cart-drawer"
-                            onClick={e => e.stopPropagation()}
+                            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                            className="cart-drawer" onClick={e => e.stopPropagation()}
                         >
                             <div className="drawer-header">
                                 <ShoppingBag className="icon-gold" />
@@ -318,24 +270,28 @@ const App = () => {
                             </div>
 
                             {cart.length === 0 ? (
-                                <div className="empty-cart">
-                                    <ShoppingBag size={80} strokeWidth={1} />
-                                    <p>حقيبتك فارغة، ابدأي بالتسوق الآن</p>
-                                    <button className="btn-primary" onClick={() => setIsCartOpen(false)}>تصفح المنتجات</button>
-                                </div>
-                            ) : checkoutStatus === 'success' ? (
-                                <div className="success-message">
-                                    <CheckCircle size={60} color="#2DCA73" />
-                                    <h3>تم استلام طلبك!</h3>
-                                    <p>سنتصل بكِ قريباً لتأكيد الموعد</p>
-                                    <button className="btn-primary" onClick={() => { setCheckoutStatus('browsing'); setIsCartOpen(false); }}>حسناً</button>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px', textAlign: 'center' }}>
+                                    {checkoutStatus === 'success' ? (
+                                        <>
+                                            <CheckCircle size={60} color="#2DCA73" />
+                                            <h3 style={{ marginTop: '20px' }}>تم استلام طلبك!</h3>
+                                            <p>سنتواصل معك قريباً لتأكيد التوصيل.</p>
+                                            <button className="btn-primary" style={{ marginTop: '20px' }} onClick={() => { setCheckoutStatus('browsing'); setIsCartOpen(false); }}>حسناً</button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ShoppingBag size={80} opacity="0.1" />
+                                            <p>السلة فارغة حالياً</p>
+                                            <button className="btn-primary" style={{ marginTop: '20px' }} onClick={() => setIsCartOpen(false)}>تصفح المنتجات</button>
+                                        </>
+                                    )}
                                 </div>
                             ) : (
                                 <>
                                     <div className="cart-items">
                                         {cart.map(item => (
                                             <div key={item.id} className="cart-item">
-                                                <img src={item.image || placeholderImg} alt={item.name} />
+                                                <img src={ensureValidUrl(item.image) || placeholderImg} alt={item.name} />
                                                 <div className="item-details">
                                                     <h4>{item.name}</h4>
                                                     <div className="item-price">{(item.online_price || item.price).toLocaleString()} ج.م</div>
@@ -350,21 +306,21 @@ const App = () => {
                                         ))}
                                     </div>
                                     <div className="drawer-footer">
-                                        <div className="cart-summary">
-                                            <div className="summary-row"><span>المجموع الفرعي:</span> <span>{cartTotal.toLocaleString()} ج.م</span></div>
-                                            <div className="summary-row total"><span>الإجمالي:</span> <span>{cartTotal.toLocaleString()} ج.م</span></div>
+                                        <div className="summary-row total">
+                                            <span>الإجمالي:</span>
+                                            <span>{cartTotal.toLocaleString()} ج.م</span>
                                         </div>
 
                                         {checkoutStatus === 'checkout' ? (
-                                            <form onSubmit={handleCheckout} className="checkout-form">
-                                                <input placeholder="الاسم بالكامل" required value={orderInfo.name} onChange={e => setOrderInfo({ ...orderInfo, name: e.target.value })} />
-                                                <input placeholder="رقم الموبايل" required value={orderInfo.phone} onChange={e => setOrderInfo({ ...orderInfo, phone: e.target.value })} />
-                                                <textarea placeholder="العنوان بالتفصيل" required value={orderInfo.address} onChange={e => setOrderInfo({ ...orderInfo, address: e.target.value })} />
-                                                <button type="submit" className="btn-primary full-width">تأكيد الطلب الآن</button>
-                                                <button type="button" className="btn-flat" onClick={() => setCheckoutStatus('browsing')}>رجوع</button>
+                                            <form className="checkout-form" style={{ marginTop: '20px' }} onSubmit={handlePlaceOrder}>
+                                                <input placeholder="الاسم بالكامل" required value={customerInfo.name} onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })} />
+                                                <input placeholder="رقم الموبايل" required value={customerInfo.phone} onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })} />
+                                                <textarea placeholder="العنوان بالتفصيل" required value={customerInfo.address} onChange={e => setCustomerInfo({ ...customerInfo, address: e.target.value })} />
+                                                <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '10px' }}>تأكيد الطلب الآن</button>
+                                                <button type="button" className="btn-flat" style={{ width: '100%', marginTop: '10px', color: 'var(--store-gray)' }} onClick={() => setCheckoutStatus('browsing')}>رجوع</button>
                                             </form>
                                         ) : (
-                                            <button onClick={() => setCheckoutStatus('checkout')} className="btn-primary full-width">إتمام الشراء</button>
+                                            <button className="btn-primary" style={{ width: '100%', marginTop: '20px' }} onClick={() => setCheckoutStatus('checkout')}>إتمام الشراء</button>
                                         )}
                                     </div>
                                 </>
@@ -374,46 +330,31 @@ const App = () => {
                 )}
             </AnimatePresence>
 
-            {/* Product Details Modal */}
+            {/* Product Modal */}
             <AnimatePresence>
                 {selectedProduct && (
                     <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="product-modal"
-                            onClick={e => e.stopPropagation()}
+                            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                            className="product-modal" onClick={e => e.stopPropagation()}
                         >
-                            <button className="modal-close" onClick={() => setSelectedProduct(null)}><X /></button>
+                            <button className="modal-close-btn" onClick={() => setSelectedProduct(null)}><X /></button>
                             <div className="modal-content-grid">
                                 <div className="modal-image-side">
-                                    <img src={selectedProduct.image || placeholderImg} alt={selectedProduct.name} />
-                                    {selectedProduct.gallery && selectedProduct.gallery.length > 0 && (
-                                        <div className="gallery-thumbs">
-                                            <img src={selectedProduct.image} className="active" alt="thumb" />
-                                            {selectedProduct.gallery.slice(0, 3).map((img, i) => (
-                                                <img key={i} src={img} alt={`thumb-${i}`} />
-                                            ))}
-                                        </div>
-                                    )}
+                                    <img src={ensureValidUrl(selectedProduct.image) || (selectedProduct.gallery && selectedProduct.gallery.length > 0 ? ensureValidUrl(selectedProduct.gallery[0]) : null) || placeholderImg} alt={selectedProduct.name} />
                                 </div>
                                 <div className="modal-info-side">
-                                    <span className="brand-tag">أصلي 100%</span>
+                                    <span className="brand-badge-small">أصلي 100%</span>
                                     <h2>{selectedProduct.name}</h2>
                                     <div className="modal-price">
                                         {(selectedProduct.online_price || selectedProduct.price).toLocaleString()} ج.م
                                     </div>
                                     <p className="product-desc">
-                                        {selectedProduct.long_description || 'قطعة مختارة بعناية من البيت التركي، تضفي لمسة شرقية عصرية على منزلك. جودة عالية وتصميم فريد.'}
+                                        {selectedProduct.long_description || 'قطعة مختارة بعناية من البيت التركي، تضفي لمسة فنية فريدة على منزلك. جودة عالية وتصاميم تركية أصلية.'}
                                     </p>
                                     <div className="modal-actions">
-                                        <button className="btn-primary" onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}>إضافة للسلة</button>
+                                        <button className="btn-primary" style={{ flex: 1 }} onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}>إضافة للسلة</button>
                                         <button className="btn-wishlist"><Heart size={20} /></button>
-                                    </div>
-                                    <div className="meta-footer">
-                                        <span>الفئة: {selectedProduct.category}</span>
-                                        <span>الباركود: {selectedProduct.barcode}</span>
                                     </div>
                                 </div>
                             </div>
@@ -437,24 +378,57 @@ const App = () => {
                     <div className="footer-links">
                         <h4>روابط هامة</h4>
                         <ul>
-                            <li><a href="#">عن البيت التركي</a></li>
-                            <li><a href="#">سياسة الاسترجاع</a></li>
-                            <li><a href="#">فروعنا</a></li>
-                            <li><a href="#">تواصل معنا</a></li>
+                            <li>عن البيت التركي</li>
+                            <li>سياسة الاسترجاع</li>
+                            <li>تواصل معنا</li>
                         </ul>
                     </div>
                     <div className="footer-contact">
                         <h4>تواصل معنا</h4>
-                        <div className="contact-info">
-                            <p><MapPin size={18} /> شارع التجارة، الفرع الرئيسي، القاهرة</p>
-                            <p><Phone size={18} /> 01012345678</p>
-                        </div>
+                        <p><Phone size={16} /> 01012345678</p>
+                        <p><MapPin size={16} /> القاهرة، الفرع الرئيسي</p>
                     </div>
                 </div>
                 <div className="footer-bottom">
-                    <p>© 2024 البيت التركي للأدوات المنزلية. جميع الحقوق محفوظة.</p>
+                    <p>© 2024 البيت التركي - جميع الحقوق محفوظة</p>
                 </div>
             </footer>
+        </div>
+    );
+};
+
+const ProductCard = ({ product, onAdd, onOpen, placeholder, ensureValidUrl }) => {
+    const imageUrl = ensureValidUrl(product.image) || (product.gallery && product.gallery.length > 0 ? ensureValidUrl(product.gallery[0]) : null) || placeholder;
+    const displayPrice = product.online_price || product.price || 0;
+
+    return (
+        <div className="product-card">
+            <div className="product-image-wrapper">
+                <div className="card-actions">
+                    <button className="circle-btn" onClick={() => onAdd(product)}><ShoppingBag size={18} /></button>
+                    <button className="circle-btn" onClick={onOpen}><Eye size={18} /></button>
+                </div>
+                <img
+                    src={imageUrl}
+                    className="product-image"
+                    alt={product.name}
+                    loading="lazy"
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = placeholder;
+                    }}
+                />
+            </div>
+            <div className="product-info">
+                <span className="product-category-tag">{product.category || 'عام'}</span>
+                <h3 className="product-name">{product.name}</h3>
+                <div className="product-price">
+                    {Number(displayPrice).toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: '400', opacity: 0.6 }}>ج.م</span>
+                </div>
+                <button className="add-btn-minimal" onClick={() => onAdd(product)}>
+                    <Plus size={16} /> إضافة للسلة
+                </button>
+            </div>
         </div>
     );
 };
