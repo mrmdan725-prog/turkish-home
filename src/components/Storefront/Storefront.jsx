@@ -58,6 +58,18 @@ const Storefront = ({ products, settings, onSaveSale }) => {
 
     const cartTotal = cart.reduce((sum, item) => sum + ((item.onlinePrice || item.price || 0) * item.quantity), 0);
 
+    const placeholderImg = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=1200';
+
+    const ensureValidUrl = (url) => {
+        if (!url || typeof url !== 'string' || url.trim() === '') return null;
+        if (url.startsWith('http') || url.startsWith('https') || url.startsWith('/')) {
+            // Avoid local paths like C:\
+            if (url.includes(':\\')) return null;
+            return url;
+        }
+        return null;
+    };
+
     const handlePlaceOrder = () => {
         const orderData = {
             orderId: 'WEB-' + (Date.now()).toString().slice(-6),
@@ -79,8 +91,6 @@ const Storefront = ({ products, settings, onSaveSale }) => {
         setCheckoutStatus('success');
         setCart([]);
     };
-
-    const placeholderImg = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=600';
 
     return (
         <div className="store-container" dir="rtl">
@@ -369,10 +379,19 @@ const Storefront = ({ products, settings, onSaveSale }) => {
 };
 
 const ProductCard = ({ product, onAdd, onOpen }) => {
-    const placeholder = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=600';
+    const placeholder = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=1200';
 
-    // Safely get the image URL
-    const imageUrl = product.image || (product.gallery && product.gallery.length > 0 ? product.gallery[0] : null) || placeholder;
+    // Safely get the image URL using the same logic (since it's a sub-component, we'll define a local version or use the one from props if we refactored)
+    const ensureValidUrl = (url) => {
+        if (!url || typeof url !== 'string' || url.trim() === '') return null;
+        if (url.startsWith('http') || url.startsWith('https') || url.startsWith('/')) {
+            if (url.includes(':\\')) return null;
+            return url;
+        }
+        return null;
+    };
+
+    const imageUrl = ensureValidUrl(product.image) || (product.gallery && product.gallery.length > 0 ? ensureValidUrl(product.gallery[0]) : null) || placeholder;
     const displayPrice = product.onlinePrice || product.price || 0;
 
     return (

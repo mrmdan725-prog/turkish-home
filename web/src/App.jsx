@@ -105,7 +105,17 @@ const App = () => {
         }
     };
 
-    const placeholderImg = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=600';
+    const placeholderImg = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=1200';
+
+    const ensureValidUrl = (url) => {
+        if (!url || typeof url !== 'string' || url.trim() === '') return null;
+        if (url.startsWith('http') || url.startsWith('https') || url.startsWith('/')) {
+            // Avoid local paths like C:\
+            if (url.includes(':\\')) return null;
+            return url;
+        }
+        return null;
+    };
 
     if (loading) return (
         <div className="loader-container">
@@ -234,7 +244,7 @@ const App = () => {
                                         <button className="circle-btn"><Heart size={18} /></button>
                                     </div>
                                     <img
-                                        src={p.image || (p.gallery && p.gallery.length > 0 ? p.gallery[0] : null) || placeholderImg}
+                                        src={ensureValidUrl(p.image) || (p.gallery && p.gallery.length > 0 ? ensureValidUrl(p.gallery[0]) : null) || placeholderImg}
                                         className="product-image"
                                         alt={p.name}
                                         loading="lazy"
