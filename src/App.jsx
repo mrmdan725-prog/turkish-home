@@ -301,6 +301,7 @@ function App() {
         barcode: p.barcode || '',
         category: p.category || 'عام',
         image: p.image || '',
+        gallery: p.gallery || [],
         show_online: p.showOnline || false,
         online_price: p.onlinePrice || null,
         long_description: p.longDescription || ''

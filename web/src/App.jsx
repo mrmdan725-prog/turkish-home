@@ -140,7 +140,18 @@ const App = () => {
                             animate={{ opacity: 1 }}
                             className="product-card"
                         >
-                            <img src={p.image || 'https://images.unsplash.com/photo-1584990333910-efef038b725c?q=80&w=400'} className="product-image" alt={p.name} />
+                            <div className="product-image-container" style={{ height: '250px', overflow: 'hidden', position: 'relative' }}>
+                                <img
+                                    src={p.image || (p.gallery && p.gallery.length > 0 ? p.gallery[0] : 'https://images.unsplash.com/photo-1584990333910-efef038b725c?q=80&w=400')}
+                                    className="product-image"
+                                    alt={p.name}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=600';
+                                    }}
+                                />
+                            </div>
                             <div className="product-info">
                                 <span style={{ color: '#D4AF37', fontWeight: 'bold', fontSize: '0.8rem' }}>{p.category}</span>
                                 <h3 style={{ fontSize: '1.2rem', margin: '5px 0' }}>{p.name}</h3>
