@@ -59,7 +59,7 @@ const Logo = ({ size = 40, showText = true, color = '#4B2C20' }) => {
                         fontSize: '0.65rem',
                         color: color,
                         opacity: '0.8',
-                        marginTop: '2px'
+                        marginTop: '5px'
                     }}>للأدوات المنزلية والأنتيكات</span>
                 </div>
             )}

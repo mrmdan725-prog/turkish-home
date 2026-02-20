@@ -881,3 +881,107 @@
     padding: 40px !important;
     color: var(--text-muted);
 }
+
+/* Responsive Enhancements for Inventory */
+@media (max-width: 1024px) {
+    .inventory-header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .header-navigation {
+        overflow-x: auto;
+        padding: 4px;
+        scrollbar-width: none;
+    }
+
+    .inventory-dashboard {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .inventory-main-content {
+        padding: 16px;
+    }
+
+    .inventory-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .search-group {
+        max-width: 100%;
+    }
+
+    .filter-group {
+        justify-content: space-between;
+    }
+
+    .category-chips {
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: none;
+    }
+
+    .inventory-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .modern-table {
+        min-width: 800px;
+        /* Force minimum width to enable scroll */
+    }
+
+    /* PO View */
+    .po-container {
+        padding: 16px;
+    }
+
+    .po-header-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .supplier-input {
+        width: 100%;
+    }
+
+    .po-input-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .po-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .po-table {
+        min-width: 600px;
+    }
+
+    .po-summary-footer {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+
+    .confirm-po-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .modern-modal {
+        width: 95% !important;
+    }
+
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}

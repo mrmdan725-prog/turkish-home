@@ -15,6 +15,7 @@ import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sales, setSales] = useState(() => {
     const saved = localStorage.getItem('turkish_home_sales');
     return saved ? JSON.parse(saved) : [];
@@ -129,7 +130,7 @@ function App() {
                 category: cp.category || 'عام',
                 image: cp.image || '',
                 gallery: cp.gallery || [],
-                showOnline: cp.show_online || false,
+                showOnline: !!cp.show_online, // Force boolean
                 onlinePrice: cp.online_price ? Number(cp.online_price) : null,
                 longDescription: cp.long_description || ''
               };
@@ -302,7 +303,7 @@ function App() {
         category: p.category || 'عام',
         image: p.image || '',
         gallery: p.gallery || [],
-        show_online: p.showOnline || false,
+        show_online: !!p.showOnline,
         online_price: p.onlinePrice || null,
         long_description: p.longDescription || ''
       }));
@@ -361,9 +362,25 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className={`app-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+      <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={(id) => {
+          setActiveTab(id);
+          setIsSidebarOpen(false); // Close sidebar after clicking on mobile
+        }}
+      />
       <main className="main-content">
+        {/* Mobile Header */}
+        <div className="mobile-header">
+          <button className="sidebar-toggle" onClick={() => setIsSidebarOpen(true)}>
+            <div className="bar"></div>
+            <div className="bar"></div>
+            <div className="bar"></div>
+          </button>
+          <span className="mobile-brand">TURKISH HOME</span>
+        </div>
         {activeTab === 'storefront' && (
           <Storefront products={products} settings={settings} onSaveSale={saveSale} />
         )}

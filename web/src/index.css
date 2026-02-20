@@ -85,13 +85,18 @@ button {
 
 /* Storefront UI Classes */
 .store-header {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px);
+    background: transparent;
     border-bottom: 1px solid var(--store-border);
     position: sticky;
     top: 0;
     z-index: 1000;
     padding: 15px 0;
+    transition: background 0.3s ease;
+}
+
+.store-header.scrolled {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
 }
 
 .nav-content {
@@ -114,6 +119,7 @@ button {
     display: flex;
     flex-direction: column;
     line-height: 1;
+    gap: 5px;
 }
 
 .brand-main {
@@ -124,6 +130,7 @@ button {
 
 .brand-sub {
     font-size: 0.6rem;
+    margin-top: 2px;
     letter-spacing: 2px;
     color: var(--store-gold);
     font-weight: 800;
@@ -733,6 +740,72 @@ button {
     text-align: center;
 }
 
+/* Mobile Bottom Nav Bar */
+.mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: white;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08);
+    z-index: 1001;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 10px;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid var(--store-border);
+}
+
+.mobile-bottom-nav .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    color: var(--store-gray);
+    width: 25%;
+}
+
+.mobile-bottom-nav .nav-item span {
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.mobile-bottom-nav .nav-item.active {
+    color: var(--store-brown);
+}
+
+.mobile-bottom-nav .nav-item.active span {
+    color: var(--store-gold);
+}
+
+.cart-nav-item .cart-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.m-cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--store-gold);
+    color: white;
+    font-size: 0.6rem;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid white;
+}
+
+/* Responsiveness Extensions */
 @media (max-width: 768px) {
     .modal-content-grid {
         grid-template-columns: 1fr;
@@ -745,6 +818,129 @@ button {
     .nav-actions .search-bar-wrapper {
         width: 40px;
         overflow: hidden;
+    }
+
+    .desktop-only {
+        display: none;
+    }
+
+    .mobile-bottom-nav {
+        display: flex;
+    }
+
+    body {
+        padding-bottom: 70px;
+    }
+
+    /* Space for bottom nav */
+
+    .hero {
+        height: 450px;
+    }
+
+    .hero h1 {
+        font-size: 2.2rem;
+    }
+
+    .hero p {
+        font-size: 0.95rem;
+    }
+
+    .features-grid {
+        flex-direction: column;
+        gap: 15px;
+        padding: 0 20px;
+    }
+
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 columns on mobile is better */
+        gap: 15px;
+    }
+
+    .product-image-wrapper {
+        height: 200px;
+    }
+
+    .product-info {
+        padding: 12px;
+    }
+
+    .product-name {
+        font-size: 0.95rem;
+        line-height: 1.3;
+    }
+
+    .product-price {
+        font-size: 1.1rem;
+    }
+
+    .add-btn-minimal {
+        padding: 8px;
+        font-size: 0.8rem;
+    }
+
+    .cat-circle-btn .icon-wrapper {
+        width: 65px;
+        height: 65px;
+    }
+
+    .cat-circle-btn .icon-wrapper svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .cat-circle-btn span {
+        font-size: 0.85rem;
+    }
+
+    .cart-drawer {
+        max-width: 100%;
+    }
+
+    .product-modal {
+        height: 100vh;
+        border-radius: 0;
+        overflow-y: auto;
+    }
+
+    .modal-content-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .main-modal-img img {
+        height: 300px;
+    }
+
+    .modal-info-side {
+        padding: 25px;
+        gap: 15px;
+    }
+
+    .modal-info-side h2 {
+        font-size: 1.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .brand-main {
+        font-size: 1.3rem;
+    }
+
+    .hero h1 {
+        font-size: 1.8rem;
+    }
+
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .footer-grid {
+        text-align: center;
+    }
+
+    .social-links {
+        justify-content: center;
     }
 }
 
@@ -772,4 +968,10 @@ button {
     color: var(--store-gold);
     font-weight: 800;
     font-size: 0.8rem;
+}
+
+/* Fix for horizontal scroll issues */
+.store-container {
+    overflow-x: hidden;
+    width: 100%;
 }

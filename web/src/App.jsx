@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, X, Plus, Minus, Search, Clock, Home, CheckCircle, ChevronRight, Eye, Phone, MapPin, Instagram, Facebook, Star, LayoutGrid, Heart, Zap, Package, Sparkles, Soup } from 'lucide-react';
+import {
+    ShoppingBag, Search, Home, Phone, Star, Clock, ChevronRight, X, User, MapPin,
+    Soup, Zap, Package, Sparkles, LayoutGrid, Plus, Eye, Heart, Instagram,
+    Facebook, Minus, CheckCircle
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './supabase';
 import './index.css';
+
+const Logo = ({ size = 45, color = '#4B2C20' }) => (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 15L85 45V85H15V45L50 15Z" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M42 85V65C42 60.5817 45.5817 57 50 57C54.4183 57 58 60.5817 58 65V85" stroke={color} strokeWidth="2.5" />
+        <path d="M25 75H35V82H25V75Z" fill={color} />
+        <path d="M30 75V60" stroke={color} strokeWidth="1.5" />
+        <circle cx="30" cy="58" r="2" fill={color} />
+        <path d="M65 75H75V82H65V75Z" fill={color} />
+        <path d="M70 75V60" stroke={color} strokeWidth="1.5" />
+        <circle cx="70" cy="58" r="2" fill={color} />
+        <path d="M50 35V50" stroke={color} strokeWidth="1.5" />
+    </svg>
+);
 
 const App = () => {
     const [products, setProducts] = useState([]);
@@ -15,6 +33,15 @@ const App = () => {
     const [activeModalImg, setActiveModalImg] = useState(null);
     const [checkoutStatus, setCheckoutStatus] = useState('browsing'); // browsing, checkout, success
     const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     // Fetch data from Supabase
     useEffect(() => {
@@ -129,18 +156,18 @@ const App = () => {
     return (
         <div className="store-container" dir="rtl">
             {/* Header */}
-            <header className="store-header">
+            <header className={`store-header ${scrolled ? 'scrolled' : ''}`}>
                 <div className="container nav-content">
-                    <div className="logo-container">
-                        <img src="/logo.png" alt="Logo" className="logo-img" onError={(e) => e.target.style.display = 'none'} />
+                    <div className="logo-container" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ cursor: 'pointer' }}>
+                        <Logo />
                         <div className="brand-name">
                             <span className="brand-main">البيت التركي</span>
-                            <span className="brand-sub">TURKISH HOME ART</span>
+                            <span className="brand-sub">للأدوات المنزلية والأنتيكات</span>
                         </div>
                     </div>
 
                     <div className="nav-actions">
-                        <div className="search-bar-wrapper">
+                        <div className="search-bar-wrapper desktop-only">
                             <Search size={18} />
                             <input
                                 type="text"
@@ -156,6 +183,29 @@ const App = () => {
                     </div>
                 </div>
             </header>
+
+            {/* Mobile Bottom Nav */}
+            <nav className="mobile-bottom-nav">
+                <button className="nav-item active" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                    <Home size={22} />
+                    <span>الرئيسية</span>
+                </button>
+                <button className="nav-item" onClick={() => document.getElementById('shop').scrollIntoView({ behavior: 'smooth' })}>
+                    <Search size={22} />
+                    <span>البحث</span>
+                </button>
+                <button className="nav-item cart-nav-item" onClick={() => setIsCartOpen(true)}>
+                    <div className="cart-icon-wrapper">
+                        <ShoppingBag size={22} />
+                        {cart.length > 0 && <span className="m-cart-badge">{cart.length}</span>}
+                    </div>
+                    <span>السلة</span>
+                </button>
+                <button className="nav-item" onClick={() => window.open(`https://wa.me/201012345678`, '_blank')}>
+                    <Phone size={22} />
+                    <span>واتساب</span>
+                </button>
+            </nav>
 
             <AnimatePresence mode="wait">
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -407,7 +457,7 @@ const App = () => {
             <footer className="store-footer">
                 <div className="container footer-grid">
                     <div className="footer-brand">
-                        <img src="/logo.png" alt="Logo" className="footer-logo" />
+                        <Logo size={60} color="#D4AF37" />
                         <p>وجهتكم الأولى للأناقة والجمال في كل ركن من أركان منزلك. نختار لكم بعناية أرقى الموديلات التركية.</p>
                         <div className="social-links">
                             <a href="#"><Instagram /></a>

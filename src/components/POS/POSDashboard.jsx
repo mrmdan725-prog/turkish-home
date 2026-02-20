@@ -33,6 +33,7 @@ const POSDashboard = ({ onSaveSale, products, settings, customers, sales = [] })
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [paymentType, setPaymentType] = useState('cash');
     const [custSearch, setCustSearch] = useState('');
+    const [activeMobileView, setActiveMobileView] = useState('products'); // 'products' or 'cart'
 
     const categories = [
         { id: 'all', label: 'الكل' },
@@ -176,8 +177,24 @@ const POSDashboard = ({ onSaveSale, products, settings, customers, sales = [] })
                 </div>
             </header>
 
-            <div className="pos-content">
-                <div className="products-section">
+            {/* Mobile View Toggle */}
+            <div className="pos-mobile-toggle">
+                <button
+                    className={activeMobileView === 'products' ? 'active' : ''}
+                    onClick={() => setActiveMobileView('products')}
+                >
+                    <Grid size={18} /> المنتجات
+                </button>
+                <button
+                    className={activeMobileView === 'cart' ? 'active' : ''}
+                    onClick={() => setActiveMobileView('cart')}
+                >
+                    <ShoppingCart size={18} /> السلة ({cart.length})
+                </button>
+            </div>
+
+            <div className={`pos-content ${activeMobileView}`}>
+                <div className={`products-section ${activeMobileView === 'products' ? 'active' : 'hidden'}`}>
                     <div className="products-grid">
                         {filteredProducts.map(product => (
                             <div key={product.id} className={`product-card ${product.stock <= 0 ? 'out-of-stock' : ''}`} onClick={() => addToCart(product)}>
@@ -201,7 +218,7 @@ const POSDashboard = ({ onSaveSale, products, settings, customers, sales = [] })
                     </div>
                 </div>
 
-                <aside className="cart-sidebar">
+                <aside className={`cart-sidebar ${activeMobileView === 'cart' ? 'active' : 'hidden'}`}>
                     <div className="cart-header">
                         <ShoppingCart size={20} />
                         <h2>قائمة الطلب</h2>
@@ -318,6 +335,20 @@ const POSDashboard = ({ onSaveSale, products, settings, customers, sales = [] })
                         </button>
                     </div>
                 </aside>
+
+                {/* Mobile Floating Cart Button (only on product view) */}
+                {activeMobileView === 'products' && cart.length > 0 && (
+                    <button className="mobile-cart-float" onClick={() => setActiveMobileView('cart')}>
+                        <div className="float-left">
+                            <span className="count">{cart.length}</span>
+                            <ShoppingCart size={20} />
+                        </div>
+                        <div className="float-right">
+                            <span className="label">عرض السلة</span>
+                            <span className="total">{totalPrice} ج.م</span>
+                        </div>
+                    </button>
+                )}
             </div>
 
             {showReceipt && receiptData && (
@@ -398,12 +429,14 @@ const POSDashboard = ({ onSaveSale, products, settings, customers, sales = [] })
                 </div>
             )}
 
-            {lastScan && (
-                <div className="scan-notification">
-                    <CheckCircle2 size={18} />
-                    تمت إضافة: {lastScan}
-                </div>
-            )}
+            {
+                lastScan && (
+                    <div className="scan-notification">
+                        <CheckCircle2 size={18} />
+                        تمت إضافة: {lastScan}
+                    </div>
+                )
+            }
 
             <style>
                 {`
@@ -422,7 +455,7 @@ const POSDashboard = ({ onSaveSale, products, settings, customers, sales = [] })
 }
 `}
             </style>
-        </div>
+        </div >
     );
 };
 

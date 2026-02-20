@@ -149,23 +149,29 @@ const Inventory = ({ products, setProducts, settings, purchases = [], setPurchas
 
         // Supabase Sync
         if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL') {
-            const { supabase } = await import('../../supabaseClient');
-            const productData = {
-                id: editingProduct.id,
-                name: editingProduct.name,
-                price: editingProduct.price,
-                cost_price: editingProduct.costPrice || 0,
-                stock: editingProduct.stock || 0,
-                min_stock: editingProduct.minStock || 5,
-                barcode: editingProduct.barcode || '',
-                category: editingProduct.category || 'عام',
-                image: editingProduct.image || '',
-                gallery: editingProduct.gallery || [], // Support for multiple images
-                show_online: editingProduct.showOnline !== false, // Default to true if undefined
-                online_price: editingProduct.onlinePrice || null,
-                long_description: editingProduct.longDescription || ''
-            };
-            await supabase.from('products').upsert(productData);
+            try {
+                const { supabase } = await import('../../supabaseClient');
+                const productData = {
+                    id: editingProduct.id,
+                    name: editingProduct.name,
+                    price: editingProduct.price,
+                    cost_price: editingProduct.costPrice || 0,
+                    stock: editingProduct.stock || 0,
+                    min_stock: editingProduct.minStock || 5,
+                    barcode: editingProduct.barcode || '',
+                    category: editingProduct.category || 'عام',
+                    image: editingProduct.image || '',
+                    gallery: editingProduct.gallery || [], // Support for multiple images
+                    show_online: !!editingProduct.showOnline, // Consistent with App.jsx
+                    online_price: editingProduct.onlinePrice || null,
+                    long_description: editingProduct.longDescription || ''
+                };
+                const { error } = await supabase.from('products').upsert(productData);
+                if (error) throw error;
+            } catch (err) {
+                console.error("Supabase update failed:", err);
+                alert('فشل تحديث البيانات في السحاب. يرجى التأكد من تنفيذ أكواد SQL المطلوبة في Supabase (عمود gallery).');
+            }
         }
 
         setEditingProduct(null);
