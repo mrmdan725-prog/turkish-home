@@ -333,6 +333,12 @@
     border: 1px solid #FECACA;
 }
 
+.payment-badge.store {
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #FDE68A;
+}
+
 .table-actions {
     display: flex;
     gap: 8px;

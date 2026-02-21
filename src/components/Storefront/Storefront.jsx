@@ -324,8 +324,39 @@ const Storefront = ({ products, settings, onSaveSale }) => {
                         >
                             <button style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10, background: 'var(--store-beige)', width: '40px', height: '40px', borderRadius: '50%' }} onClick={() => setSelectedProduct(null)}><X /></button>
                             <div className="modal-content-grid">
-                                <div className="modal-image-side" style={{ background: '#f9f9f9' }}>
-                                    <img src={selectedProduct.image || placeholderImg} alt={selectedProduct.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <div className="modal-image-side" style={{ background: '#f9f9f9', display: 'flex', flexDirection: 'column' }}>
+                                    <div className="main-display-image" style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+                                        <img
+                                            key={selectedProduct._active_img || selectedProduct.image}
+                                            src={selectedProduct._active_img || selectedProduct.image || placeholderImg}
+                                            alt={selectedProduct.name}
+                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                        />
+                                    </div>
+
+                                    {/* Gallery Thumbnails */}
+                                    {((selectedProduct.gallery && selectedProduct.gallery.length > 0) || (selectedProduct.image)) && (
+                                        <div className="modal-gallery-thumbs" style={{ display: 'flex', gap: '8px', padding: '15px', overflowX: 'auto', background: 'white', borderTop: '1px solid #eee' }}>
+                                            {[selectedProduct.image, ...(selectedProduct.gallery || [])].filter(Boolean).map((img, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    onClick={() => setSelectedProduct({ ...selectedProduct, _active_img: img })}
+                                                    style={{
+                                                        width: '60px',
+                                                        height: '60px',
+                                                        borderRadius: '8px',
+                                                        overflow: 'hidden',
+                                                        cursor: 'pointer',
+                                                        border: (selectedProduct._active_img === img || (!selectedProduct._active_img && idx === 0)) ? '2px solid var(--store-gold)' : '2px solid transparent',
+                                                        flexShrink: 0,
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="modal-info-side">
                                     <span style={{ color: 'var(--store-gold)', fontWeight: '800', fontSize: '0.8rem' }}>أصلي 100%</span>
@@ -337,7 +368,7 @@ const Storefront = ({ products, settings, onSaveSale }) => {
                                         {selectedProduct.longDescription || 'قطعة مختارة بعناية من البيت التركي، تضفي لمسة فنية فريدة على منزلك. جودة عالية وتصاميم تركية أصلية.'}
                                     </p>
                                     <div style={{ marginTop: 'auto', display: 'flex', gap: '15px' }}>
-                                        <button className="btn-primary" style={{ flex: 1 }} onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}>إضافة للسلة</button>
+                                        <button className="btn-primary" style={{ flex: 1 }} onClick={() => { addToCart({ ...selectedProduct, _active_img: undefined }); setSelectedProduct(null); }}>إضافة للسلة</button>
                                         <button style={{ width: '50px', background: 'var(--store-beige)', borderRadius: '10px' }}><Heart size={20} /></button>
                                     </div>
                                 </div>

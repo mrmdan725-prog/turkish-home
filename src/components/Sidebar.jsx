@@ -1,12 +1,19 @@
-import React from 'react';
-import { LayoutDashboard, ShoppingCart, Package, BarChart3, Settings, LogOut, Users, FileText, ShoppingBag, Brain, Store } from 'lucide-react';
+import React, { useState } from 'react';
+import { LayoutDashboard, ShoppingCart, Package, BarChart3, Settings, LogOut, Users, FileText, ShoppingBag, Brain, Store, Plus, Minus, Clock } from 'lucide-react';
 import './Sidebar.css';
 import Logo from './Common/Logo';
 
-const Sidebar = ({ activeTab, setActiveTab }) => {
-  const menuItems = [
+const Sidebar = ({ activeTab, setActiveTab, pendingCount = 0 }) => {
+  const [isStoreExpanded, setIsStoreExpanded] = useState(false);
+
+  const mainMenuItems = [
     { id: 'ai', label: 'مساعد البيت التركي الذكي', icon: Brain },
-    { id: 'storefront', label: 'المتجر الإلكتروني', icon: Store },
+    {
+      id: 'storefront',
+      label: 'المتجر الإلكتروني',
+      icon: Store,
+      hasSubItems: true
+    },
     { id: 'pos', label: 'المبيعات', icon: ShoppingCart },
     { id: 'invoices', label: 'الفواتير', icon: FileText },
     { id: 'purchases', label: 'المشتريات', icon: ShoppingBag },
@@ -16,6 +23,12 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
   ];
 
+  const storeSubItems = [
+    { id: 'web_orders', label: 'طلبات المتجر أونلاين', icon: ShoppingBag },
+    { id: 'web_history', label: 'سجل الطلبات المسلمة', icon: Clock },
+    { id: 'web_customers', label: 'عملاء المتجر أونلاين', icon: Users },
+  ];
+
   return (
     <div className="sidebar">
       <div className="sidebar-logo">
@@ -23,15 +36,58 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       </div>
 
       <div className="sidebar-menu">
-        {menuItems.map((item) => (
-          <div
-            key={item.id}
-            className={`menu-item ${activeTab === item.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(item.id)}
-          >
-            <item.icon size={20} className="menu-icon" />
-            <span className="menu-label">{item.label}</span>
-          </div>
+        {mainMenuItems.map((item) => (
+          <React.Fragment key={item.id}>
+            <div
+              className={`menu-item ${activeTab === item.id ? 'active' : ''}`}
+              onClick={() => {
+                if (item.hasSubItems) {
+                  // Don't change tab immediately if clicking the main item, 
+                  // or maybe do both? User said "when clicking +".
+                  setActiveTab(item.id);
+                } else {
+                  setActiveTab(item.id);
+                }
+              }}
+            >
+              <div className="menu-item-content">
+                <item.icon size={20} className="menu-icon" />
+                <span className="menu-label">{item.label}</span>
+              </div>
+
+              {item.hasSubItems && (
+                <button
+                  className="expand-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsStoreExpanded(!isStoreExpanded);
+                  }}
+                >
+                  {isStoreExpanded ? <Minus size={16} /> : <Plus size={16} />}
+                </button>
+              )}
+            </div>
+
+            {item.hasSubItems && isStoreExpanded && (
+              <div className="sub-menu-container">
+                {storeSubItems.map(subItem => (
+                  <div
+                    key={subItem.id}
+                    className={`menu-item sub-item ${activeTab === subItem.id ? 'active' : ''}`}
+                    onClick={() => setActiveTab(subItem.id)}
+                  >
+                    <div className="menu-item-content">
+                      <subItem.icon size={16} className="menu-icon" />
+                      <span className="menu-label">{subItem.label}</span>
+                    </div>
+                    {subItem.id === 'web_orders' && pendingCount > 0 && (
+                      <span className="notify-badge">{pendingCount}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </React.Fragment>
         ))}
       </div>
 

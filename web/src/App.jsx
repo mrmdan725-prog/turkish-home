@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
     ShoppingBag, Search, Home, Phone, Star, Clock, ChevronRight, X, User, MapPin,
     Soup, Zap, Package, Sparkles, LayoutGrid, Plus, Eye, Heart, Instagram,
-    Facebook, Minus, CheckCircle
+    Facebook, Minus, CheckCircle, Truck, FileText, PackageCheck, LogIn
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './supabase';
+import CustomerAuth from './components/CustomerAuth';
+import CustomerDashboard from './components/CustomerDashboard';
 import './index.css';
 
 const Logo = ({ size = 45, color = '#4B2C20' }) => (
@@ -35,6 +37,110 @@ const App = () => {
     const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
     const [scrolled, setScrolled] = useState(false);
 
+    // Customer Auth & Dashboard
+    const [customer, setCustomer] = useState(() => {
+        try {
+            const saved = localStorage.getItem('th_customer');
+            return saved ? JSON.parse(saved) : null;
+        } catch { return null; }
+    });
+    const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+
+    const handleLoginSuccess = (customerData) => {
+        setCustomer(customerData);
+        // Auto-fill checkout info
+        setCustomerInfo({
+            name: customerData.name || '',
+            phone: customerData.phone || '',
+            address: customerData.address || ''
+        });
+    };
+
+    const handleLogout = () => {
+        setCustomer(null);
+        localStorage.removeItem('th_customer');
+        setIsDashboardOpen(false);
+    };
+
+    const handleAccountClick = () => {
+        if (customer) {
+            setIsDashboardOpen(true);
+        } else {
+            setIsAuthOpen(true);
+        }
+    };
+
+    // Order Tracking
+    const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+    const [trackingQuery, setTrackingQuery] = useState('');
+    const [trackedOrder, setTrackedOrder] = useState(null);
+    const [trackingLoading, setTrackingLoading] = useState(false);
+    const [trackingError, setTrackingError] = useState('');
+
+    const ORDER_STAGES = [
+        { key: 'pending', label: 'تم استلام الطلب', icon: PackageCheck, desc: 'تم استلام طلبك وجاري مراجعته' },
+        { key: 'invoiced', label: 'تم تأكيد الطلب', icon: FileText, desc: 'تم تأكيد طلبك وإصدار الفاتورة' },
+        { key: 'delivering', label: 'قيد التوصيل', icon: Truck, desc: 'طلبك في الطريق إليك' },
+        { key: 'delivered', label: 'تم التسليم', icon: CheckCircle, desc: 'تم تسليم طلبك بنجاح' },
+    ];
+
+    const getStageIndex = (status) => {
+        const idx = ORDER_STAGES.findIndex(s => s.key === status);
+        return idx >= 0 ? idx : 0;
+    };
+
+    const handleTrackOrder = async () => {
+        if (!trackingQuery.trim()) return;
+        setTrackingLoading(true);
+        setTrackingError('');
+        setTrackedOrder(null);
+        try {
+            // Search by order ID or phone
+            let result = null;
+            const { data, error } = await supabase
+                .from('sales')
+                .select('*')
+                .eq('source', 'online')
+                .or(`id.eq.${trackingQuery.trim()},customer_phone.eq.${trackingQuery.trim()}`)
+                .order('date', { ascending: false })
+                .limit(1);
+
+            if (error) throw error;
+            if (data && data.length > 0) {
+                setTrackedOrder(data[0]);
+            } else {
+                setTrackingError('لم يتم العثور على طلب بهذا الرقم. تأكد من رقم الطلب أو رقم الهاتف.');
+            }
+        } catch (err) {
+            setTrackingError('حدث خطأ أثناء البحث. يرجى المحاولة مرة أخرى.');
+        } finally {
+            setTrackingLoading(false);
+        }
+    };
+
+    // Website Settings
+    const [storeSettings, setStoreSettings] = useState({
+        storeName: 'البيت التركي',
+        phone: '01012345678',
+        facebook: '#',
+        instagram: '#'
+    });
+
+    // Wishlist / Likes
+    const [wishlist, setWishlist] = useState(() => {
+        const saved = localStorage.getItem('th_wishlist');
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    useEffect(() => {
+        localStorage.setItem('th_wishlist', JSON.stringify(wishlist));
+    }, [wishlist]);
+
+    const toggleLike = (id) => {
+        setWishlist(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+
     useEffect(() => {
         const handleScroll = () => {
             setScrolled(window.scrollY > 20);
@@ -47,17 +153,27 @@ const App = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const { data, error } = await supabase
+                // Fetch Products
+                const { data: prodData, error: prodErr } = await supabase
                     .from('products')
                     .select('*')
                     .eq('show_online', true);
 
-                if (error) throw error;
-                // Map database fields (snake_case) to app fields (camelCase) if needed
-                // But web/src/App.jsx uses p.image, p.price, p.online_price
-                setProducts(data || []);
+                if (prodErr) throw prodErr;
+                setProducts(prodData || []);
+
+                // Fetch Settings
+                const { data: setRes } = await supabase
+                    .from('settings')
+                    .select('data')
+                    .eq('id', 'store_settings')
+                    .single();
+
+                if (setRes && setRes.data) {
+                    setStoreSettings(prev => ({ ...prev, ...setRes.data }));
+                }
             } catch (err) {
-                console.error("Error fetching products:", err);
+                console.error("Error fetching data:", err);
             } finally {
                 setLoading(false);
             }
@@ -130,7 +246,8 @@ const App = () => {
             total: cartTotal,
             items: cart,
             source: 'online',
-            status: 'pending'
+            status: 'pending',
+            customer_id: customer?.id || null
         };
 
         try {
@@ -138,6 +255,8 @@ const App = () => {
             if (!error) {
                 setCheckoutStatus('success');
                 setCart([]);
+                // Save the order ID for tracking
+                localStorage.setItem('th_last_order', orderData.id);
             } else {
                 throw error;
             }
@@ -161,7 +280,7 @@ const App = () => {
                     <div className="logo-container" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ cursor: 'pointer' }}>
                         <Logo />
                         <div className="brand-name">
-                            <span className="brand-main">البيت التركي</span>
+                            <span className="brand-main">{storeSettings.storeName}</span>
                             <span className="brand-sub">للأدوات المنزلية والأنتيكات</span>
                         </div>
                     </div>
@@ -176,6 +295,9 @@ const App = () => {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
+                        <button onClick={handleAccountClick} className="track-btn desktop-only" title={customer ? 'حسابي' : 'تسجيل دخول'}>
+                            {customer ? <User size={18} /> : <LogIn size={18} />}
+                        </button>
                         <button onClick={() => setIsCartOpen(true)} className="cart-icon-btn">
                             <ShoppingBag size={20} />
                             <span className="cart-badge">{cart.length}</span>
@@ -201,7 +323,11 @@ const App = () => {
                     </div>
                     <span>السلة</span>
                 </button>
-                <button className="nav-item" onClick={() => window.open(`https://wa.me/201012345678`, '_blank')}>
+                <button className="nav-item" onClick={handleAccountClick}>
+                    {customer ? <User size={22} /> : <LogIn size={22} />}
+                    <span>{customer ? 'حسابي' : 'دخول'}</span>
+                </button>
+                <button className="nav-item" onClick={() => window.open(`https://wa.me/${storeSettings.phone.replace(/[^0-9]/g, '')}`, '_blank')}>
                     <Phone size={22} />
                     <span>واتساب</span>
                 </button>
@@ -278,6 +404,8 @@ const App = () => {
                                 <ProductCard
                                     key={p.id}
                                     product={p}
+                                    isLiked={wishlist.includes(p.id)}
+                                    onLike={() => toggleLike(p.id)}
                                     onAdd={addToCart}
                                     onOpen={() => {
                                         setSelectedProduct(p);
@@ -336,8 +464,16 @@ const App = () => {
                                         <>
                                             <CheckCircle size={60} color="#2DCA73" />
                                             <h3 style={{ marginTop: '20px' }}>تم استلام طلبك!</h3>
+                                            <p style={{ color: '#64748b' }}>رقم الطلب: <strong style={{ color: '#4B2C20' }}>{localStorage.getItem('th_last_order')}</strong></p>
                                             <p>سنتواصل معك قريباً لتأكيد التوصيل.</p>
-                                            <button className="btn-primary" style={{ marginTop: '20px' }} onClick={() => { setCheckoutStatus('browsing'); setIsCartOpen(false); }}>حسناً</button>
+                                            <button className="btn-primary" style={{ marginTop: '15px' }} onClick={() => {
+                                                setTrackingQuery(localStorage.getItem('th_last_order') || '');
+                                                setCheckoutStatus('browsing');
+                                                setIsCartOpen(false);
+                                                setIsTrackingOpen(true);
+                                                handleTrackOrder();
+                                            }}>تتبع طلبك</button>
+                                            <button className="btn-flat" style={{ marginTop: '10px', color: 'var(--store-gray)' }} onClick={() => { setCheckoutStatus('browsing'); setIsCartOpen(false); }}>حسناً</button>
                                         </>
                                     ) : (
                                         <>
@@ -374,6 +510,11 @@ const App = () => {
 
                                         {checkoutStatus === 'checkout' ? (
                                             <form className="checkout-form" style={{ marginTop: '20px' }} onSubmit={handlePlaceOrder}>
+                                                {customer && (
+                                                    <div className="autofill-notice">
+                                                        <CheckCircle size={14} /> تم تعبئة بياناتك تلقائياً
+                                                    </div>
+                                                )}
                                                 <input placeholder="الاسم بالكامل" required value={customerInfo.name} onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })} />
                                                 <input placeholder="رقم الموبايل" required value={customerInfo.phone} onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })} />
                                                 <textarea placeholder="العنوان بالتفصيل" required value={customerInfo.address} onChange={e => setCustomerInfo({ ...customerInfo, address: e.target.value })} />
@@ -381,7 +522,19 @@ const App = () => {
                                                 <button type="button" className="btn-flat" style={{ width: '100%', marginTop: '10px', color: 'var(--store-gray)' }} onClick={() => setCheckoutStatus('browsing')}>رجوع</button>
                                             </form>
                                         ) : (
-                                            <button className="btn-primary" style={{ width: '100%', marginTop: '20px' }} onClick={() => setCheckoutStatus('checkout')}>إتمام الشراء</button>
+                                            <div>
+                                                {!customer && (
+                                                    <button className="btn-login-checkout" onClick={() => setIsAuthOpen(true)}>
+                                                        <LogIn size={16} /> سجّل دخولك لتعبئة بياناتك تلقائياً
+                                                    </button>
+                                                )}
+                                                <button className="btn-primary" style={{ width: '100%', marginTop: '10px' }} onClick={() => {
+                                                    if (customer) {
+                                                        setCustomerInfo({ name: customer.name, phone: customer.phone, address: customer.address || '' });
+                                                    }
+                                                    setCheckoutStatus('checkout');
+                                                }}>إتمام الشراء</button>
+                                            </div>
                                         )}
                                     </div>
                                 </>
@@ -444,12 +597,130 @@ const App = () => {
                                     </p>
                                     <div className="modal-actions">
                                         <button className="btn-primary" style={{ flex: 1 }} onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}>إضافة للسلة</button>
-                                        <button className="btn-wishlist"><Heart size={20} /></button>
+                                        <button
+                                            className={`btn-wishlist ${wishlist.includes(selectedProduct.id) ? 'active' : ''}`}
+                                            onClick={() => toggleLike(selectedProduct.id)}
+                                        >
+                                            <Heart size={20} fill={wishlist.includes(selectedProduct.id) ? "currentColor" : "none"} />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* Order Tracking Modal */}
+            <AnimatePresence>
+                {isTrackingOpen && (
+                    <div className="modal-overlay" onClick={() => { setIsTrackingOpen(false); setTrackedOrder(null); setTrackingError(''); }}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                            className="tracking-modal" onClick={e => e.stopPropagation()}
+                        >
+                            <button className="modal-close-btn" onClick={() => { setIsTrackingOpen(false); setTrackedOrder(null); setTrackingError(''); }}><X /></button>
+
+                            <div className="tracking-header">
+                                <Truck size={32} className="tracking-icon" />
+                                <h2>تتبع طلبك</h2>
+                                <p>أدخل رقم الطلب أو رقم الهاتف</p>
+                            </div>
+
+                            <div className="tracking-search">
+                                <input
+                                    type="text"
+                                    placeholder="مثال: WEB-123456 أو 01012345678"
+                                    value={trackingQuery}
+                                    onChange={(e) => setTrackingQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleTrackOrder()}
+                                />
+                                <button onClick={handleTrackOrder} disabled={trackingLoading}>
+                                    {trackingLoading ? <div className="mini-loader"></div> : <Search size={18} />}
+                                    <span>{trackingLoading ? 'جاري البحث...' : 'بحث'}</span>
+                                </button>
+                            </div>
+
+                            {trackingError && (
+                                <div className="tracking-error">{trackingError}</div>
+                            )}
+
+                            {trackedOrder && (
+                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="tracking-result">
+                                    <div className="tracking-order-info">
+                                        <div className="tracking-order-id">
+                                            <span>رقم الطلب</span>
+                                            <strong>{trackedOrder.id}</strong>
+                                        </div>
+                                        <div className="tracking-order-date">
+                                            <span>تاريخ الطلب</span>
+                                            <strong>{new Date(trackedOrder.date).toLocaleDateString('ar-EG')}</strong>
+                                        </div>
+                                        <div className="tracking-order-total">
+                                            <span>الإجمالي</span>
+                                            <strong>{Number(trackedOrder.total).toLocaleString()} ج.م</strong>
+                                        </div>
+                                    </div>
+
+                                    {/* Visual Progress Stepper */}
+                                    <div className="tracking-stepper">
+                                        {ORDER_STAGES.map((stage, idx) => {
+                                            const currentIdx = getStageIndex(trackedOrder.status);
+                                            const StageIcon = stage.icon;
+                                            const isActive = idx === currentIdx;
+                                            const isDone = idx < currentIdx;
+                                            return (
+                                                <React.Fragment key={stage.key}>
+                                                    <div className={`track-step ${isDone ? 'done' : ''} ${isActive ? 'active' : ''}`}>
+                                                        <div className="track-circle">
+                                                            {isDone ? <CheckCircle size={20} /> : <StageIcon size={20} />}
+                                                        </div>
+                                                        <div className="track-info">
+                                                            <span className="track-label">{stage.label}</span>
+                                                            {(isDone || isActive) && <span className="track-desc">{stage.desc}</span>}
+                                                        </div>
+                                                    </div>
+                                                    {idx < ORDER_STAGES.length - 1 && (
+                                                        <div className={`track-connector ${idx < currentIdx ? 'done' : ''}`} />
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {trackedOrder.status === 'cancelled' && (
+                                        <div className="tracking-cancelled">
+                                            <X size={20} /> تم إلغاء هذا الطلب
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Customer Auth Modal */}
+            <AnimatePresence>
+                {isAuthOpen && (
+                    <CustomerAuth
+                        isOpen={isAuthOpen}
+                        onClose={() => setIsAuthOpen(false)}
+                        onLoginSuccess={handleLoginSuccess}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Customer Dashboard */}
+            <AnimatePresence>
+                {isDashboardOpen && customer && (
+                    <CustomerDashboard
+                        isOpen={isDashboardOpen}
+                        onClose={() => setIsDashboardOpen(false)}
+                        customer={customer}
+                        onLogout={handleLogout}
+                        onUpdateCustomer={(updated) => setCustomer(updated)}
+                    />
                 )}
             </AnimatePresence>
 
@@ -460,9 +731,9 @@ const App = () => {
                         <Logo size={60} color="#D4AF37" />
                         <p>وجهتكم الأولى للأناقة والجمال في كل ركن من أركان منزلك. نختار لكم بعناية أرقى الموديلات التركية.</p>
                         <div className="social-links">
-                            <a href="#"><Instagram /></a>
-                            <a href="#"><Facebook /></a>
-                            <a href="#"><Phone /></a>
+                            {storeSettings.instagram && <a href={storeSettings.instagram} target="_blank" rel="noreferrer"><Instagram /></a>}
+                            {storeSettings.facebook && <a href={storeSettings.facebook} target="_blank" rel="noreferrer"><Facebook /></a>}
+                            <a href={`tel:${storeSettings.phone}`}><Phone /></a>
                         </div>
                     </div>
                     <div className="footer-links">
@@ -475,19 +746,19 @@ const App = () => {
                     </div>
                     <div className="footer-contact">
                         <h4>تواصل معنا</h4>
-                        <p><Phone size={16} /> 01012345678</p>
-                        <p><MapPin size={16} /> القاهرة، الفرع الرئيسي</p>
+                        <p><Phone size={16} /> {storeSettings.phone}</p>
+                        <p><MapPin size={16} /> {storeSettings.address || 'القاهرة، الفرع الرئيسي'}</p>
                     </div>
                 </div>
                 <div className="footer-bottom">
-                    <p>© 2024 البيت التركي - جميع الحقوق محفوظة</p>
+                    <p>© {new Date().getFullYear()} {storeSettings.storeName} - جميع الحقوق محفوظة</p>
                 </div>
             </footer>
         </div>
     );
 };
 
-const ProductCard = ({ product, onAdd, onOpen, placeholder, ensureValidUrl }) => {
+const ProductCard = ({ product, isLiked, onLike, onAdd, onOpen, placeholder, ensureValidUrl }) => {
     const imageUrl = ensureValidUrl(product.image) || (product.gallery && product.gallery.length > 0 ? ensureValidUrl(product.gallery[0]) : null) || placeholder;
     const displayPrice = product.online_price || product.price || 0;
 
@@ -495,7 +766,7 @@ const ProductCard = ({ product, onAdd, onOpen, placeholder, ensureValidUrl }) =>
         <div className="product-card">
             <div className="product-image-wrapper">
                 <div className="card-actions">
-                    <button className="circle-btn" onClick={() => onAdd(product)}><ShoppingBag size={18} /></button>
+                    <button className={`circle-btn ${isLiked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); onLike(); }}><Heart size={18} fill={isLiked ? "currentColor" : "none"} /></button>
                     <button className="circle-btn" onClick={onOpen}><Eye size={18} /></button>
                 </div>
                 <img

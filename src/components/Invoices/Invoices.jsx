@@ -10,6 +10,75 @@ const Invoices = ({ sales, onReturn, settings }) => {
     const [returnItems, setReturnItems] = useState([]);
     const [returnReason, setReturnReason] = useState('');
 
+    const LOGO_SVG = `<svg width="45" height="45" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 15L85 45V85H15V45L50 15Z" stroke="#4B2C20" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M42 85V65C42 60.5817 45.5817 57 50 57C54.4183 57 58 60.5817 58 65V85" stroke="#4B2C20" stroke-width="2.5"/>
+        <path d="M25 75H35V82H25V75Z" fill="#4B2C20"/><path d="M30 75V60" stroke="#4B2C20" stroke-width="1.5"/>
+        <circle cx="30" cy="58" r="2" fill="#4B2C20"/><path d="M27 65C27 65 24 63 24 60" stroke="#4B2C20" stroke-width="1"/>
+        <path d="M33 68C33 68 36 66 36 63" stroke="#4B2C20" stroke-width="1"/>
+        <path d="M65 75H75V82H65V75Z" fill="#4B2C20"/><path d="M70 75V60" stroke="#4B2C20" stroke-width="1.5"/>
+        <circle cx="70" cy="58" r="2" fill="#4B2C20"/><path d="M67 65C67 65 64 63 64 60" stroke="#4B2C20" stroke-width="1"/>
+        <path d="M73 68C73 68 76 66 76 63" stroke="#4B2C20" stroke-width="1"/>
+        <path d="M50 35V50" stroke="#4B2C20" stroke-width="1.5"/>
+        <path d="M47 40Q40 38 42 35" stroke="#4B2C20" stroke-width="1"/>
+        <path d="M53 42Q60 40 58 37" stroke="#4B2C20" stroke-width="1"/>
+    </svg>`;
+
+    const buildProfessionalInvoiceHTML = (invoice, isPDF = false) => {
+        const title = isPDF ? `فاتورة ${invoice.orderId || invoice.id}` : `طباعة فاتورة ${invoice.orderId || invoice.id}`;
+        const itemsList = invoice.items.map((item, idx) => `
+            <tr style="${idx % 2 === 0 ? '' : 'background: #faf8f5;'}">
+                <td style="padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 0.85rem;">${idx + 1}</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 0.85rem;">${item.name}</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 0.85rem;">${item.quantity}</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 0.85rem;">${item.price.toLocaleString()} ج.م</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 0.85rem;">${(item.price * item.quantity).toLocaleString()} ج.م</td>
+            </tr>
+        `).join('');
+
+        return `<html dir='rtl'><head><title>${title}</title><style>
+            @page { size: A4; margin: 15mm; }
+            * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+            body { padding: 30px; color: #333; direction: rtl; }
+            .inv-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+            .inv-brand { display: flex; align-items: center; gap: 12px; }
+            .inv-brand h2 { font-size: 1.4rem; color: #4B2C20; margin: 0; }
+            .inv-brand span { font-size: 0.75rem; color: #888; display: block; }
+            .inv-title { text-align: left; }
+            .inv-title h1 { font-size: 2rem; color: #4B2C20; line-height: 1; margin: 0; }
+            .inv-number { color: #D4AF37; font-weight: 800; font-size: 1rem; }
+            .inv-divider { height: 3px; background: linear-gradient(to left, #4B2C20, #D4AF37); margin-bottom: 25px; border-radius: 2px; }
+            .inv-meta { display: flex; justify-content: space-between; margin-bottom: 25px; }
+            .inv-meta-block h4 { color: #4B2C20; margin-bottom: 8px; font-size: 0.9rem; }
+            .inv-meta-block p { font-size: 0.85rem; margin-bottom: 4px; color: #555; }
+            .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .inv-table th { background: #4B2C20; color: white; padding: 10px 14px; text-align: right; font-size: 0.85rem; }
+            .inv-total-section { background: #4B2C20; color: white; border-radius: 10px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 1.3rem; font-weight: 800; }
+            .grand-strong { color: #D4AF37; font-size: 1.5rem; }
+            .inv-footer { text-align: center; padding-top: 25px; border-top: 2px dashed #ddd; margin-top: 10px; }
+            @media print { body { padding: 15px; } }
+        </style></head><body>
+            <div class="inv-header">
+                <div class="inv-brand">
+                    ${LOGO_SVG}
+                    <div><h2>البيت التركي</h2><span>للأدوات المنزلية والأنتيكات</span></div>
+                </div>
+                <div class="inv-title"><h1>فاتورة</h1><span class="inv-number">#${invoice.orderId || invoice.id}</span></div>
+            </div>
+            <div class="inv-divider"></div>
+            <div class="inv-meta">
+                <div><h4>تم إصدارها إلى:</h4><p>عميل نقدي / مبيعات معرض</p><p>تاريخ الفاتورة: ${formatDate(invoice.date)}</p></div>
+                <div style="text-align:left;"><h4>تفاصيل الطلب:</h4><p>رقم العملية: ${invoice.id}</p><p>طريقة الدفع: ${invoice.paymentType === 'cash' ? 'نقدي' : 'فيزا / تحويل'}</p></div>
+            </div>
+            <table class="inv-table">
+                <thead><tr><th>#</th><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+                <tbody>${itemsList}</tbody>
+            </table>
+            <div class="inv-total-section"><span>الإجمالي الكلي</span><strong class="grand-strong">${invoice.total.toLocaleString()} ج.م</strong></div>
+            <div class="inv-footer"><p>شكراً لتسوقكم من البيت التركي 🏠</p><span>هذه الفاتورة صادرة إلكترونياً ولا تحتاج إلى توقيع</span></div>
+        </body></html>`;
+    };
+
     // Date formatter helper
     const formatDate = (dateStr) => {
         if (!dateStr || dateStr === '-') return '-';
@@ -28,11 +97,13 @@ const Invoices = ({ sales, onReturn, settings }) => {
         }
     };
 
-    const filteredSales = (sales || []).filter(sale => {
-        const orderIdStr = (sale.orderId || '').toString();
-        const dateStr = (sale.date || '').toString();
-        return orderIdStr.includes(searchTerm) || dateStr.includes(searchTerm);
-    });
+    const filteredSales = (sales || [])
+        .filter(sale => sale.source !== 'online') // Hide raw web orders
+        .filter(sale => {
+            const orderIdStr = (sale.orderId || sale.id || '').toString();
+            const dateStr = (sale.date || '').toString();
+            return orderIdStr.includes(searchTerm) || dateStr.includes(searchTerm);
+        });
 
     const openReturnModal = (sale) => {
         setSelectedInvoice(sale);
@@ -80,6 +151,7 @@ const Invoices = ({ sales, onReturn, settings }) => {
 
     const getPaymentBadge = (type) => {
         if (type === 'credit') return <span className="payment-badge credit">آجل</span>;
+        if (type === 'store') return <span className="payment-badge store">من المتجر</span>;
         return <span className="payment-badge cash">نقدي</span>;
     };
 
@@ -126,8 +198,8 @@ const Invoices = ({ sales, onReturn, settings }) => {
                                     </tr>
                                 ) : (
                                     filteredSales.map((sale, index) => (
-                                        <tr key={sale.orderId || index}>
-                                            <td>#{sale.orderId || '---'}</td>
+                                        <tr key={(sale.orderId || sale.id) || index}>
+                                            <td>#{(sale.orderId || sale.id) || '---'}</td>
                                             <td>{formatDate(sale.date)}</td>
                                             <td>{getPaymentBadge(sale.paymentType)}</td>
                                             <td>{getStatusBadge(sale.status)}</td>
@@ -156,7 +228,7 @@ const Invoices = ({ sales, onReturn, settings }) => {
                     <div className="invoice-detail-side">
                         <div className="detail-card">
                             <div className="detail-header">
-                                <h3>تفاصيل الفاتورة #{selectedInvoice.orderId}</h3>
+                                <h3>تفاصيل الفاتورة #{(selectedInvoice.orderId || selectedInvoice.id)}</h3>
                                 <button className="close-btn" onClick={() => setSelectedInvoice(null)}><X size={20} /></button>
                             </div>
                             <div className="detail-info">
@@ -194,14 +266,72 @@ const Invoices = ({ sales, onReturn, settings }) => {
                                     <span>الإجمالي:</span>
                                     <strong>{selectedInvoice.total} ج.م</strong>
                                 </div>
-                                <div className="action-row">
-                                    <button className="print-btn-secondary" onClick={handlePrint}><Printer size={16} /> طباعة</button>
-                                    {selectedInvoice.status !== 'refunded' && (
-                                        <button className="return-action-btn" onClick={() => openReturnModal(selectedInvoice)}>
-                                            <RefreshCcw size={16} /> مرتجع
-                                        </button>
-                                    )}
+                                <div className="action-row" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '8px', marginTop: '15px' }}>
+                                    <button className="print-btn-standard" style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        padding: '12px',
+                                        background: '#3b82f6',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '10px',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem',
+                                        boxShadow: '0 4px 10px rgba(59, 130, 246, 0.2)'
+                                    }} onClick={handlePrint}>
+                                        <Printer size={18} /> طباعة عادية
+                                    </button>
+                                    <button className="print-btn-secondary" style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        padding: '10px',
+                                        background: '#1e293b',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '10px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        fontSize: '0.8rem'
+                                    }} onClick={() => {
+                                        const win = window.open('', '_blank');
+                                        win.document.write(buildProfessionalInvoiceHTML(selectedInvoice, false));
+                                        win.document.close();
+                                        win.print();
+                                    }}>
+                                        <Printer size={16} /> طباعة احترافية
+                                    </button>
+                                    <button className="download-btn-pdf" style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        padding: '10px',
+                                        background: '#D4AF37',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '10px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        fontSize: '0.8rem'
+                                    }} onClick={() => {
+                                        const win = window.open('', '_blank');
+                                        win.document.write(buildProfessionalInvoiceHTML(selectedInvoice, true));
+                                        win.document.close();
+                                        setTimeout(() => win.print(), 300);
+                                    }}>
+                                        <Download size={16} /> تحميل PDF
+                                    </button>
                                 </div>
+                                {selectedInvoice.status !== 'refunded' && (
+                                    <button className="return-action-btn" onClick={() => openReturnModal(selectedInvoice)} style={{ width: '100%', marginTop: '10px', borderRadius: '10px', fontWeight: '700' }}>
+                                        <RefreshCcw size={16} /> عمل مرتجع
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -224,7 +354,7 @@ const Invoices = ({ sales, onReturn, settings }) => {
                     </div>
                     <div className="divider">***************************</div>
                     <div className="receipt-info">
-                        <p>رقم الفاتورة: #{selectedInvoice.orderId}</p>
+                        <p>رقم الفاتورة: #{(selectedInvoice.orderId || selectedInvoice.id)}</p>
                         <p>التاريخ: {formatDate(selectedInvoice.date)}</p>
                     </div>
                     <div className="divider">---------------------------</div>

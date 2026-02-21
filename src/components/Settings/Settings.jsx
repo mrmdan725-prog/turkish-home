@@ -243,6 +243,15 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>استخدم {'{orderId}'} ليتم استبداله برقم الفاتورة الحقيقي تلقائياً</span>
                                 </div>
 
+                                <div className="form-group">
+                                    <label>رابط الفيسبوك</label>
+                                    <input type="text" placeholder="https://facebook.com/your-page" value={localSettings.facebook || ''} onChange={(e) => setLocalSettings({ ...localSettings, facebook: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>رابط الانستجرام</label>
+                                    <input type="text" placeholder="https://instagram.com/your-page" value={localSettings.instagram || ''} onChange={(e) => setLocalSettings({ ...localSettings, instagram: e.target.value })} />
+                                </div>
+
                                 <div className="form-group toggle-group">
                                     <label>إظهار الـ QR في الفاتورة</label>
                                     <input type="checkbox" checked={localSettings.showQR} onChange={(e) => setLocalSettings({ ...localSettings, showQR: e.target.checked })} />

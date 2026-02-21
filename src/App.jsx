@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard/Dashboard';
+import Storefront from './components/Storefront/Storefront';
 import POSDashboard from './components/POS/POSDashboard';
-import Inventory from './components/Inventory/Inventory';
-import Reports from './components/Reports/Reports';
-import Customers from './components/Customers/Customers';
 import Invoices from './components/Invoices/Invoices';
+import Inventory from './components/Inventory/Inventory';
+import Customers from './components/Customers/Customers';
+import Reports from './components/Reports/Reports';
+import Settings from './components/Settings/Settings';
 import Purchases from './components/Purchases/Purchases';
 import TurkishAI from './components/TurkishAI/TurkishAI';
-import Settings from './components/Settings/Settings';
-import Storefront from './components/Storefront/Storefront';
+import WebManager from './components/WebManager/WebManager';
 import { supabase } from './supabaseClient';
 import './App.css';
 
@@ -52,6 +53,29 @@ function App() {
     const saved = localStorage.getItem('turkish_home_purchases');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [pendingWebOrdersCount, setPendingWebOrdersCount] = useState(0);
+
+  const fetchPendingCount = async () => {
+    const { count } = await supabase
+      .from('sales')
+      .select('*', { count: 'exact', head: true })
+      .eq('source', 'online')
+      .eq('status', 'pending');
+
+    setPendingWebOrdersCount(count || 0);
+  };
+
+  useEffect(() => {
+    fetchPendingCount();
+
+    const sub = supabase.channel('pending_web').on('postgres_changes',
+      { event: '*', schema: 'public', table: 'sales', filter: 'source=eq.online' },
+      fetchPendingCount
+    ).subscribe();
+
+    return () => supabase.removeChannel(sub);
+  }, []);
 
   const [settings, setSettings] = useState({
     storeName: 'TURKISH HOME',
@@ -239,7 +263,20 @@ function App() {
 
     // 4. Cloud Sync
     if (isCloudEnabled) {
-      supabase.from('sales').upsert(saleData).then();
+      const syncData = {
+        id: saleData.id,
+        date: saleData.date,
+        total: saleData.total,
+        items: saleData.items,
+        payment_type: saleData.paymentType || 'cash',
+        customer_name: saleData.customerName || '',
+        customer_phone: saleData.customerPhone || '',
+        customer_address: saleData.customerAddress || '',
+        source: saleData.source || 'pos',
+        status: saleData.status || 'completed'
+      };
+      supabase.from('sales').upsert(syncData).then();
+
       // Update individual products stock on cloud
       saleData.items.forEach(item => {
         const p = products.find(prod => prod.id === item.id);
@@ -354,6 +391,13 @@ function App() {
         if (sErr) throw sErr;
       }
 
+      // Sync Settings
+      const { error: setErr } = await supabase.from('settings').upsert({
+        id: 'store_settings',
+        data: settings
+      });
+      if (setErr) console.warn("Settings sync failed (table might not exist):", setErr);
+
       alert('تمت مزامنة البيانات بالكامل مع السحاب بنجاح! جميع منتجاتك معروضة الآن أونلاين.');
     } catch (error) {
       console.error('Sync failed:', error);
@@ -368,8 +412,9 @@ function App() {
         activeTab={activeTab}
         setActiveTab={(id) => {
           setActiveTab(id);
-          setIsSidebarOpen(false); // Close sidebar after clicking on mobile
+          setIsSidebarOpen(false);
         }}
+        pendingCount={pendingWebOrdersCount}
       />
       <main className="main-content">
         {/* Mobile Header */}
@@ -383,6 +428,15 @@ function App() {
         </div>
         {activeTab === 'storefront' && (
           <Storefront products={products} settings={settings} onSaveSale={saveSale} />
+        )}
+        {activeTab === 'web_orders' && (
+          <WebManager activeSubTab="orders" onInvoice={saveSale} onRefreshPending={fetchPendingCount} />
+        )}
+        {activeTab === 'web_customers' && (
+          <WebManager activeSubTab="customers" onInvoice={saveSale} />
+        )}
+        {activeTab === 'web_history' && (
+          <WebManager activeSubTab="history" onInvoice={saveSale} onRefreshPending={fetchPendingCount} />
         )}
         {activeTab === 'dashboard' && (
           <Dashboard
