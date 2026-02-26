@@ -37,6 +37,7 @@ const App = () => {
     const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
     const [scrolled, setScrolled] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
 
     // Customer Auth & Dashboard
     const [customer, setCustomer] = useState(() => {
@@ -323,6 +324,10 @@ const App = () => {
                         <button onClick={handleAccountClick} className="track-btn desktop-only" title={customer ? 'حسابي' : 'تسجيل دخول'}>
                             {customer ? <User size={18} /> : <LogIn size={18} />}
                         </button>
+                        <button onClick={() => setIsFavoritesOpen(true)} className="cart-icon-btn desktop-only" title="المفضلة">
+                            <Heart size={20} />
+                            {wishlist.length > 0 && <span className="cart-badge">{wishlist.length}</span>}
+                        </button>
                         <button onClick={() => setIsCartOpen(true)} className="cart-icon-btn">
                             <ShoppingBag size={20} />
                             <span className="cart-badge">{cart.length}</span>
@@ -357,6 +362,13 @@ const App = () => {
                 <button className="nav-item" onClick={handleAccountClick}>
                     {customer ? <User size={22} /> : <LogIn size={22} />}
                     <span>{customer ? 'حسابي' : 'دخول'}</span>
+                </button>
+                <button className="nav-item" onClick={() => setIsFavoritesOpen(true)}>
+                    <div className="cart-icon-wrapper">
+                        <Heart size={22} />
+                        {wishlist.length > 0 && <span className="m-cart-badge" style={{ backgroundColor: 'var(--store-gold)' }}>{wishlist.length}</span>}
+                    </div>
+                    <span>المفضلة</span>
                 </button>
                 <button className="nav-item" onClick={() => window.open(`https://wa.me/${storeSettings.phone.replace(/[^0-9]/g, '')}`, '_blank')}>
                     <Phone size={22} />
@@ -596,6 +608,52 @@ const App = () => {
                 )}
             </AnimatePresence>
 
+            {/* Favorites Drawer */}
+            <AnimatePresence>
+                {isFavoritesOpen && (
+                    <div className="drawer-overlay" onClick={() => setIsFavoritesOpen(false)}>
+                        <motion.div
+                            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                            className="cart-drawer favorites-drawer" onClick={e => e.stopPropagation()}
+                        >
+                            <div className="drawer-header">
+                                <Heart className="icon-gold" />
+                                <h3>المنتجات المفضلة</h3>
+                                <button className="close-btn" onClick={() => setIsFavoritesOpen(false)}><X /></button>
+                            </div>
+
+                            {wishlist.length === 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px', textAlign: 'center' }}>
+                                    <Heart size={80} opacity="0.1" />
+                                    <p>قائمة المفضلة فارغة حالياً</p>
+                                    <button className="btn-primary" style={{ marginTop: '20px' }} onClick={() => setIsFavoritesOpen(false)}>تصفح المنتجات</button>
+                                </div>
+                            ) : (
+                                <div className="cart-items" style={{ padding: '20px', overflowY: 'auto' }}>
+                                    {products.filter(p => wishlist.includes(p.id)).map(item => (
+                                        <div key={item.id} className="cart-item">
+                                            <img src={ensureValidUrl(item.image) || placeholderImg} alt={item.name} />
+                                            <div className="item-details">
+                                                <h4>{item.name}</h4>
+                                                <div className="item-price">{(item.online_price || item.price).toLocaleString()} ج.م</div>
+                                                <button
+                                                    className="btn-primary"
+                                                    style={{ marginTop: '10px', fontSize: '0.8rem', padding: '5px 10px' }}
+                                                    onClick={() => { addToCart(item); setIsFavoritesOpen(false); }}
+                                                >
+                                                    إضافة للسلة
+                                                </button>
+                                            </div>
+                                            <button className="remove-item" onClick={() => toggleLike(item.id)}><X size={14} /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* Product Modal */}
             <AnimatePresence>
                 {selectedProduct && (
@@ -800,7 +858,9 @@ const App = () => {
                     <div className="footer-contact">
                         <h4>تواصل معنا</h4>
                         <p><Phone size={16} /> {storeSettings.phone}</p>
-                        <p><MapPin size={16} /> {storeSettings.address || 'القاهرة، الفرع الرئيسي'}</p>
+                        {storeSettings.address && (
+                            <p><MapPin size={16} /> {storeSettings.address}</p>
+                        )}
                     </div>
                 </div>
                 <div className="footer-bottom">
