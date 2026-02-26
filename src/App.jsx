@@ -316,7 +316,8 @@ function App() {
     }
   };
 
-  const syncLocalToCloud = async () => {
+  const syncLocalToCloud = async (manualSettings = null) => {
+    const currentSettings = manualSettings || settings;
     if (!isCloudEnabled) {
       alert('الربط غير مفعل. يرجى التأكد من المفاتيح في ملف .env وإعادة تشغيل البرنامج.');
       return;
@@ -394,7 +395,7 @@ function App() {
       // Sync Settings
       const { error: setErr } = await supabase.from('settings').upsert({
         id: 'store_settings',
-        data: settings
+        data: currentSettings
       });
       if (setErr) console.warn("Settings sync failed (table might not exist):", setErr);
 

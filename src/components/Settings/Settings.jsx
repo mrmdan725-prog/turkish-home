@@ -579,7 +579,10 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
                                 <button
                                     className="save-settings-btn"
                                     style={{ width: '100%', background: '#3b82f6', color: 'white' }}
-                                    onClick={onCloudSync}
+                                    onClick={() => {
+                                        onSaveSettings(localSettings);
+                                        onCloudSync(localSettings);
+                                    }}
                                 >
                                     <Upload size={18} /> رفع البيانات الحالية للسحاب
                                 </button>

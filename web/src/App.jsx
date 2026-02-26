@@ -36,6 +36,7 @@ const App = () => {
     const [checkoutStatus, setCheckoutStatus] = useState('browsing'); // browsing, checkout, success
     const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
     const [scrolled, setScrolled] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     // Customer Auth & Dashboard
     const [customer, setCustomer] = useState(() => {
@@ -127,6 +128,22 @@ const App = () => {
         instagram: '#'
     });
 
+    const [currentHeroIdx, setCurrentHeroIdx] = useState(0);
+
+    // Hero Images Fallback
+    const heroFallback = 'https://images.unsplash.com/photo-1616489953149-805e8bc8636e?auto=format&fit=crop&q=80&w=2000';
+    const heroSlides = storeSettings.heroImages && storeSettings.heroImages.length > 0
+        ? storeSettings.heroImages
+        : (storeSettings.heroImage ? [storeSettings.heroImage] : [heroFallback]);
+
+    useEffect(() => {
+        if (heroSlides.length <= 1) return;
+        const timer = setInterval(() => {
+            setCurrentHeroIdx(prev => (prev + 1) % heroSlides.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, [heroSlides.length]);
+
     // Wishlist / Likes
     const [wishlist, setWishlist] = useState(() => {
         const saved = localStorage.getItem('th_wishlist');
@@ -195,10 +212,16 @@ const App = () => {
     };
 
     const filteredProducts = products.filter(p => {
+        const query = searchQuery.toLowerCase().trim();
+        const matchesSearch = !query ||
+            (String(p.name || '').toLowerCase().includes(query)) ||
+            (String(p.category || '').toLowerCase().includes(query));
+
+        // If searching, ignore category filter to search everywhere
+        if (query) return matchesSearch;
+
         const matchesCategory = selectedCategory === 'الكل' || p.category === selectedCategory;
-        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
-        return matchesCategory && matchesSearch;
+        return matchesCategory;
     });
 
     const addToCart = (product) => {
@@ -286,13 +309,15 @@ const App = () => {
                     </div>
 
                     <div className="nav-actions">
-                        <div className="search-bar-wrapper desktop-only">
+                        <div className={`search-bar-wrapper ${isSearchOpen ? 'active' : ''}`}>
                             <Search size={18} />
                             <input
                                 type="text"
                                 placeholder="ابحث عن قطعة فنية..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                onFocus={() => setIsSearchOpen(true)}
+                                onBlur={() => setTimeout(() => setIsSearchOpen(false), 200)}
                             />
                         </div>
                         <button onClick={handleAccountClick} className="track-btn desktop-only" title={customer ? 'حسابي' : 'تسجيل دخول'}>
@@ -312,7 +337,13 @@ const App = () => {
                     <Home size={22} />
                     <span>الرئيسية</span>
                 </button>
-                <button className="nav-item" onClick={() => document.getElementById('shop').scrollIntoView({ behavior: 'smooth' })}>
+                <button className="nav-item" onClick={() => {
+                    setIsSearchOpen(!isSearchOpen);
+                    if (!isSearchOpen) {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        setTimeout(() => document.querySelector('.search-bar-wrapper input')?.focus(), 300);
+                    }
+                }}>
                     <Search size={22} />
                     <span>البحث</span>
                 </button>
@@ -335,14 +366,27 @@ const App = () => {
 
             <AnimatePresence mode="wait">
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    {/* Hero */}
+                    {/* Hero Slider */}
                     <section className="hero">
+                        <AnimatePresence mode="popLayout">
+                            <motion.div
+                                key={currentHeroIdx}
+                                initial={{ opacity: 0, scale: 1.25 }}
+                                animate={{ opacity: 1, scale: 1.05 }}
+                                exit={{ opacity: 0, scale: 1 }}
+                                transition={{
+                                    opacity: { duration: 1.5, ease: "easeInOut" },
+                                    scale: { duration: 10, ease: "linear" }
+                                }}
+                                className="hero-slide"
+                                style={{ backgroundImage: `url(${heroSlides[currentHeroIdx]})` }}
+                            />
+                        </AnimatePresence>
                         <div className="hero-overlay"></div>
                         <div className="container hero-content">
                             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                                <span className="hero-tag">تشكيلة 2024</span>
-                                <h1>أناقتك تبدأ من تفاصيل منزلك</h1>
-                                <p>اكتشف عالم الأناقة التركية في منزلك مع أرقى الأدوات المنزلية المختارة بعناية.</p>
+                                <h1 style={{ textShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>أناقتك تبدأ من تفاصيل منزلك</h1>
+                                <p style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>اكتشف عالم الأناقة التركية في منزلك مع أرقى الأدوات المنزلية المختارة بعناية.</p>
                                 <div className="hero-btns">
                                     <button className="btn-primary" onClick={() => document.getElementById('shop').scrollIntoView({ behavior: 'smooth' })}>
                                         تسوقي الآن <ChevronRight size={20} />
@@ -382,65 +426,73 @@ const App = () => {
 
                     {/* Shop Content */}
                     <main className="container main-content" id="shop" style={{ padding: '60px 0' }}>
-                        <h2 style={{ fontSize: '2rem', marginBottom: '30px', color: 'var(--store-brown)' }}>تصفحي مجموعتنا</h2>
-
-                        <div className="cat-circles-wrapper" style={{ marginBottom: '40px' }}>
-                            {categories.map(cat => (
-                                <button
-                                    key={cat}
-                                    className={`cat-circle-btn ${selectedCategory === cat ? 'active' : ''}`}
-                                    onClick={() => setSelectedCategory(cat)}
-                                >
-                                    <div className="icon-wrapper">
-                                        {getCategoryIcon(cat)}
-                                    </div>
-                                    <span>{cat}</span>
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="product-grid">
-                            {filteredProducts.map(p => (
-                                <ProductCard
-                                    key={p.id}
-                                    product={p}
-                                    isLiked={wishlist.includes(p.id)}
-                                    onLike={() => toggleLike(p.id)}
-                                    onAdd={addToCart}
-                                    onOpen={() => {
-                                        setSelectedProduct(p);
-                                        setActiveModalImg(null); // Reset for new product
-                                    }}
-                                    placeholder={placeholderImg}
-                                    ensureValidUrl={ensureValidUrl}
-                                />
-                            ))}
-                        </div>
-                    </main>
-
-                    {/* Testimonials */}
-                    <section className="testimonials" style={{ background: 'var(--store-beige)', padding: '80px 0' }}>
-                        <div className="container">
-                            <h2 style={{ textAlign: 'center', marginBottom: '40px', color: 'var(--store-brown)' }}>ماذا يقول عملاؤنا</h2>
-                            <div className="testimonials-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
-                                <div className="testimonial-card" style={{ background: 'white', padding: '30px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-                                    <div style={{ display: 'flex', gap: '5px', marginBottom: '15px' }}>{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="var(--store-gold)" color="var(--store-gold)" />)}</div>
-                                    <p>"خامات فوق الممتازة ذوق عالي جداً وتعاملي معهم مستمر"</p>
-                                    <h5 style={{ marginTop: '15px', color: 'var(--store-brown)' }}>سارة أحمد</h5>
-                                </div>
-                                <div className="testimonial-card" style={{ background: 'white', padding: '30px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-                                    <div style={{ display: 'flex', gap: '5px', marginBottom: '15px' }}>{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="var(--store-gold)" color="var(--store-gold)" />)}</div>
-                                    <p>"التوصيل كان سريع جداً والمنتج وصل بحالة ممتازة"</p>
-                                    <h5 style={{ marginTop: '15px', color: 'var(--store-brown)' }}>محمد علي</h5>
-                                </div>
-                                <div className="testimonial-card" style={{ background: 'white', padding: '30px', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-                                    <div style={{ display: 'flex', gap: '5px', marginBottom: '15px' }}>{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="var(--store-gold)" color="var(--store-gold)" />)}</div>
-                                    <p>"أفضل متجر لتجهيز العرايس في مصر فعلاً ذوق تركي أصيل"</p>
-                                    <h5 style={{ marginTop: '15px', color: 'var(--store-brown)' }}>ليلى مراد</h5>
-                                </div>
+                        <div className="section-header" style={{ marginBottom: '40px' }}>
+                            <div>
+                                <h2 style={{ fontSize: '2rem', color: 'var(--store-brown)', marginBottom: '10px' }}>
+                                    {searchQuery ? `نتائج البحث عن: ${searchQuery}` : selectedCategory === 'الكل' ? 'تصفحي مجموعتنا' : selectedCategory}
+                                </h2>
+                                <p style={{ color: 'var(--store-gray)' }}>
+                                    {searchQuery ? `وجدنا ${filteredProducts.length} منتج يطابق بحثك` : 'قطع مختارة بعناية لتناسب ذوقك الرفيع'}
+                                </p>
                             </div>
                         </div>
-                    </section>
+
+                        {!searchQuery && (
+                            <div className="cat-circles-wrapper" style={{ marginBottom: '40px' }}>
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat}
+                                        className={`cat-circle-btn ${selectedCategory === cat ? 'active' : ''}`}
+                                        onClick={() => setSelectedCategory(cat)}
+                                    >
+                                        <div className="icon-wrapper">
+                                            {getCategoryIcon(cat)}
+                                        </div>
+                                        <span>{cat}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {filteredProducts.length > 0 ? (
+                            <div className="product-grid">
+                                {filteredProducts.map(p => (
+                                    <ProductCard
+                                        key={p.id}
+                                        product={p}
+                                        isLiked={wishlist.includes(p.id)}
+                                        onLike={() => toggleLike(p.id)}
+                                        onAdd={addToCart}
+                                        onOpen={() => {
+                                            setSelectedProduct(p);
+                                            setActiveModalImg(null); // Reset for new product
+                                        }}
+                                        placeholder={placeholderImg}
+                                        ensureValidUrl={ensureValidUrl}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="no-results"
+                                style={{ textAlign: 'center', padding: '100px 20px', background: 'var(--store-beige)', borderRadius: '30px' }}
+                            >
+                                <div className="no-results-content">
+                                    <div className="no-results-icon" style={{ marginBottom: '20px', color: 'var(--store-gold)', opacity: 0.3 }}>
+                                        <Search size={80} strokeWidth={1} />
+                                    </div>
+                                    <h3 style={{ fontSize: '1.5rem', color: 'var(--store-brown)', marginBottom: '10px' }}>عذراً، لم نجد ما تبحث عنه</h3>
+                                    <p style={{ color: 'var(--store-gray)', marginBottom: '25px' }}>جرب البحث بكلمات أخرى أو تصفح التصنيفات</p>
+                                    <button className="btn-primary" onClick={() => setSearchQuery('')}>
+                                        عرض كل المنتجات
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </main>
+
                 </motion.div>
             </AnimatePresence>
 
@@ -700,6 +752,7 @@ const App = () => {
                 )}
             </AnimatePresence>
 
+
             {/* Customer Auth Modal */}
             <AnimatePresence>
                 {isAuthOpen && (
@@ -764,10 +817,14 @@ const ProductCard = ({ product, isLiked, onLike, onAdd, onOpen, placeholder, ens
 
     return (
         <div className="product-card">
-            <div className="product-image-wrapper">
+            <div className="product-image-wrapper" onClick={onOpen} style={{ cursor: 'pointer' }}>
                 <div className="card-actions">
-                    <button className={`circle-btn ${isLiked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); onLike(); }}><Heart size={18} fill={isLiked ? "currentColor" : "none"} /></button>
-                    <button className="circle-btn" onClick={onOpen}><Eye size={18} /></button>
+                    <button className={`circle-btn ${isLiked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); onLike(); }}>
+                        <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+                    </button>
+                    <button className="circle-btn" onClick={(e) => { e.stopPropagation(); onOpen(); }}>
+                        <Eye size={18} />
+                    </button>
                 </div>
                 <img
                     src={imageUrl}
@@ -780,13 +837,16 @@ const ProductCard = ({ product, isLiked, onLike, onAdd, onOpen, placeholder, ens
                     }}
                 />
             </div>
-            <div className="product-info">
+            <div className="product-info" onClick={onOpen} style={{ cursor: 'pointer' }}>
                 <span className="product-category-tag">{product.category || 'عام'}</span>
                 <h3 className="product-name">{product.name}</h3>
                 <div className="product-price">
                     {Number(displayPrice).toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: '400', opacity: 0.6 }}>ج.م</span>
                 </div>
-                <button className="add-btn-minimal" onClick={() => onAdd(product)}>
+                <button
+                    className="add-btn-minimal"
+                    onClick={(e) => { e.stopPropagation(); onAdd(product); }}
+                >
                     <Plus size={16} /> إضافة للسلة
                 </button>
             </div>
