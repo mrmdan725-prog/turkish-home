@@ -615,7 +615,7 @@
 
 .po-input-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr auto;
+    grid-template-columns: 2fr 0.8fr 1fr 1fr 1.3fr 1fr auto;
     gap: 16px;
     background: #f8fafc;
     padding: 24px;
@@ -670,6 +670,53 @@
     background: #059669;
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3);
+}
+
+.po-product-field {
+    position: relative;
+}
+
+.po-suggestions-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.po-suggestion-item {
+    width: 100%;
+    background: transparent;
+    text-align: right;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.po-suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.po-suggestion-item:hover {
+    background: #f8fafc;
+}
+
+.po-suggestion-item span {
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.po-suggestion-item small {
+    color: var(--text-muted);
+    font-size: 0.78rem;
 }
 
 .po-list-section h3 {

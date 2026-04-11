@@ -4,6 +4,8 @@ import Barcode from 'react-barcode';
 import './Inventory.css';
 
 const Inventory = ({ products, setProducts, settings, purchases = [], setPurchases }) => {
+    const defaultCategory = settings?.categories?.[0] || 'عام';
+    const createEmptyTempItem = () => ({ name: '', quantity: 1, costPrice: 0, salePrice: 0, category: defaultCategory, barcode: '' });
     const [view, setView] = useState('stock'); // 'stock', 'po', 'history'
     const [filterLowStock, setFilterLowStock] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -44,12 +46,33 @@ const Inventory = ({ products, setProducts, settings, purchases = [], setPurchas
     // Purchase Order state
     const [poItems, setPoItems] = useState([]);
     const [supplier, setSupplier] = useState('');
-    const [tempItem, setTempItem] = useState({ name: '', quantity: 1, costPrice: 0, salePrice: 0, category: settings.categories[0] });
+    const [tempItem, setTempItem] = useState(createEmptyTempItem());
+    const productSuggestions = products
+        .filter(product => tempItem.name.trim() && product.name.toLowerCase().includes(tempItem.name.toLowerCase()))
+        .slice(0, 6);
+
+    const applyProductToTempItem = (product) => {
+        setTempItem(prev => ({
+            ...prev,
+            name: product.name,
+            costPrice: product.costPrice || 0,
+            salePrice: product.price || 0,
+            category: product.category || defaultCategory,
+            barcode: product.barcode || ''
+        }));
+    };
 
     const addToPo = () => {
         if (!tempItem.name || tempItem.quantity <= 0) return;
-        setPoItems([...poItems, { ...tempItem, id: Date.now() }]);
-        setTempItem({ name: '', quantity: 1, costPrice: 0, salePrice: 0, category: settings.categories[0] });
+        setPoItems([...poItems, {
+            ...tempItem,
+            id: Date.now(),
+            quantity: parseInt(tempItem.quantity || 0),
+            costPrice: parseFloat(tempItem.costPrice || 0),
+            salePrice: parseFloat(tempItem.salePrice || 0),
+            barcode: (tempItem.barcode || '').trim()
+        }]);
+        setTempItem(createEmptyTempItem());
     };
 
     const removeFromPo = (id) => {
@@ -70,6 +93,7 @@ const Inventory = ({ products, setProducts, settings, purchases = [], setPurchas
                 newProducts[existingIdx].stock += qty;
                 newProducts[existingIdx].price = parseFloat(item.salePrice) || newProducts[existingIdx].price;
                 newProducts[existingIdx].costPrice = cost || newProducts[existingIdx].costPrice;
+                newProducts[existingIdx].barcode = (item.barcode || '').trim() || newProducts[existingIdx].barcode;
             } else {
                 newProducts.push({
                     id: Math.floor(Date.now() + Math.random()),
@@ -78,7 +102,7 @@ const Inventory = ({ products, setProducts, settings, purchases = [], setPurchas
                     costPrice: cost,
                     stock: qty,
                     minStock: 5,
-                    barcode: (Math.floor(Math.random() * 9000000000000) + 1000000000000).toString(),
+                    barcode: (item.barcode || '').trim() || (Math.floor(Math.random() * 9000000000000) + 1000000000000).toString(),
                     category: item.category || 'عام',
                     showOnline: true // Default to true
                 });
@@ -142,6 +166,7 @@ const Inventory = ({ products, setProducts, settings, purchases = [], setPurchas
         setProducts(newProducts);
         setPoItems([]);
         setSupplier('');
+        setTempItem(createEmptyTempItem());
         setView('stock');
     };
 
@@ -154,11 +179,11 @@ const Inventory = ({ products, setProducts, settings, purchases = [], setPurchas
         // Simulate AI Processing (OCR)
         setTimeout(() => {
             const extractedItems = [
-                { id: Date.now() + 1, name: "بطاريات بروتيك", quantity: 45, costPrice: 1250, salePrice: 0, category: "بطاريات" },
-                { id: Date.now() + 2, name: "الواح رصاص", quantity: 36, costPrice: 200, salePrice: 0, category: "معادن" },
-                { id: Date.now() + 3, name: "الواح نحاس احمر", quantity: 15, costPrice: 240, salePrice: 0, category: "معادن" },
-                { id: Date.now() + 4, name: "مواسير نحاس اصفر", quantity: 23, costPrice: 136, salePrice: 0, category: "معادن" },
-                { id: Date.now() + 5, name: "انبوب نحاس مطلي بالبلاستيك", quantity: 23, costPrice: 58, salePrice: 0, category: "معادن" }
+                { id: Date.now() + 1, name: "بطاريات بروتيك", quantity: 45, costPrice: 1250, salePrice: 0, category: "بطاريات", barcode: '' },
+                { id: Date.now() + 2, name: "الواح رصاص", quantity: 36, costPrice: 200, salePrice: 0, category: "معادن", barcode: '' },
+                { id: Date.now() + 3, name: "الواح نحاس احمر", quantity: 15, costPrice: 240, salePrice: 0, category: "معادن", barcode: '' },
+                { id: Date.now() + 4, name: "مواسير نحاس اصفر", quantity: 23, costPrice: 136, salePrice: 0, category: "معادن", barcode: '' },
+                { id: Date.now() + 5, name: "انبوب نحاس مطلي بالبلاستيك", quantity: 23, costPrice: 58, salePrice: 0, category: "معادن", barcode: '' }
             ];
 
             setSupplier("ميار للحبوب والصناعات الغذائية");
@@ -555,22 +580,47 @@ const Inventory = ({ products, setProducts, settings, purchases = [], setPurchas
                                 <div className="supplier-input"><label>اسم المورد / الشركة</label><input type="text" placeholder="مثال: شركة النور للاستيراد" value={supplier} onChange={(e) => setSupplier(e.target.value)} /></div>
                             </div>
                             <div className="po-input-grid">
-                                <div className="input-field main"><label>اسم الصنف</label><input type="text" placeholder="ابحث أو أضف اسم جديد..." value={tempItem.name} onChange={(e) => setTempItem({ ...tempItem, name: e.target.value })} /></div>
+                                <div className="input-field main po-product-field">
+                                    <label>اسم الصنف</label>
+                                    <input
+                                        type="text"
+                                        placeholder="ابحث أو أضف اسم جديد..."
+                                        value={tempItem.name}
+                                        onChange={(e) => {
+                                            const nextName = e.target.value;
+                                            setTempItem(prev => ({ ...prev, name: nextName }));
+                                            const exactMatch = products.find(product => product.name.toLowerCase() === nextName.toLowerCase());
+                                            if (exactMatch) applyProductToTempItem(exactMatch);
+                                        }}
+                                    />
+                                    {productSuggestions.length > 0 && (
+                                        <div className="po-suggestions-list">
+                                            {productSuggestions.map(product => (
+                                                <button key={product.id} type="button" className="po-suggestion-item" onClick={() => applyProductToTempItem(product)}>
+                                                    <span>{product.name}</span>
+                                                    <small>{product.barcode || 'بدون سيريال'} • {product.category || 'عام'}</small>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="input-field small"><label>الكمية</label><input type="number" value={tempItem.quantity} onChange={(e) => setTempItem({ ...tempItem, quantity: e.target.value })} /></div>
                                 <div className="input-field small"><label>سعر التكلفة</label><input type="number" value={tempItem.costPrice} onChange={(e) => setTempItem({ ...tempItem, costPrice: e.target.value })} /></div>
                                 <div className="input-field small"><label>سعر البيع</label><input type="number" value={tempItem.salePrice} onChange={(e) => setTempItem({ ...tempItem, salePrice: e.target.value })} /></div>
+                                <div className="input-field small"><label>السيريال / الباركود</label><input type="text" placeholder="أدخله يدويًا" value={tempItem.barcode || ''} onChange={(e) => setTempItem({ ...tempItem, barcode: e.target.value })} /></div>
                                 <div className="input-field small"><label>الفئة</label><select value={tempItem.category} onChange={(e) => setTempItem({ ...tempItem, category: e.target.value })} style={{ width: '100%', height: '42px', borderRadius: '8px', border: '1px solid var(--border-color)', padding: '0 8px' }}>{(settings?.categories || []).map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
                                 <button className="add-to-po-list" onClick={addToPo}><Plus size={20} /> إضافة القائمة</button>
                             </div>
                             <div className="po-list-section">
                                 <h3>قائمة التوريد الحالية ({poItems.length} أصناف)</h3>
                                 <table className="po-table">
-                                    <thead><tr><th>الصنف</th><th>الفئة</th><th>الكمية</th><th>سعر التكلفة</th><th>سعر البيع</th><th>الإجمالي</th><th></th></tr></thead>
+                                    <thead><tr><th>الصنف</th><th>الفئة</th><th>السيريال</th><th>الكمية</th><th>سعر التكلفة</th><th>سعر البيع</th><th>الإجمالي</th><th></th></tr></thead>
                                     <tbody>
                                         {poItems.map(item => (
                                             <tr key={item.id}>
                                                 <td>{item.name}</td>
-                                                <td><select className="inner-table-input select" value={item.category || settings.categories[0]} onChange={(e) => setPoItems(prev => prev.map(i => i.id === item.id ? { ...i, category: e.target.value } : i))}>{(settings?.categories || []).map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></td>
+                                                <td><select className="inner-table-input select" value={item.category || defaultCategory} onChange={(e) => setPoItems(prev => prev.map(i => i.id === item.id ? { ...i, category: e.target.value } : i))}>{(settings?.categories || []).map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></td>
+                                                <td><input type="text" className="inner-table-input" placeholder="السيريال" value={item.barcode || ''} onChange={(e) => setPoItems(prev => prev.map(i => i.id === item.id ? { ...i, barcode: e.target.value } : i))} /></td>
                                                 <td>{item.quantity}</td><td>{item.costPrice} ج.م</td>
                                                 <td><input type="number" className="inner-table-input" value={item.salePrice} onChange={(e) => setPoItems(prev => prev.map(i => i.id === item.id ? { ...i, salePrice: e.target.value } : i))} /></td>
                                                 <td>
