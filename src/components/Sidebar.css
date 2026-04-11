@@ -217,6 +217,7 @@
         position: fixed;
         left: auto;
         right: -100%;
+        width: min(88vw, 320px);
         transition: right 0.3s ease;
         box-shadow: none;
     }
@@ -273,6 +274,35 @@
         color: var(--primary);
         font-size: 1.1rem;
         letter-spacing: 1px;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        padding: 18px 10px;
+    }
+
+    .sidebar-logo {
+        padding: 18px 16px;
+        margin-bottom: 14px;
+    }
+
+    .menu-item {
+        padding: 12px 14px;
+    }
+
+    .menu-label {
+        font-size: 0.9rem;
+    }
+
+    .mobile-header {
+        padding: 0 12px;
+        gap: 12px;
+    }
+
+    .mobile-brand {
+        font-size: 1rem;
+        letter-spacing: 0.4px;
     }
 }
 

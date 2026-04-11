@@ -1082,6 +1082,10 @@
 }
 
 @media (max-width: 1024px) {
+    .pos-content {
+        min-height: 0;
+    }
+
     .pos-header {
         height: auto;
         padding: 12px;
@@ -1140,12 +1144,83 @@
 }
 
 @media (max-width: 480px) {
+    .pos-header,
+    .pos-mobile-toggle,
+    .products-section,
+    .cart-header,
+    .payment-selection-top,
+    .cart-items,
+    .cart-footer {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
     .products-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 
     .search-wrapper {
         height: 40px;
+        padding: 0 12px;
+    }
+
+    .cat-tab {
+        padding: 6px 14px;
+        font-size: 0.82rem;
+    }
+
+    .product-card {
+        min-height: 104px;
+        height: auto;
+    }
+
+    .cart-item,
+    .item-actions,
+    .invoice-brand-header,
+    .summary-row.total {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .qty-controls,
+    .payment-toggle-group,
+    .invoice-meta-grid {
+        width: 100%;
+    }
+
+    .pay-toggle-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 10px 12px;
+    }
+
+    .customer-selection-box,
+    .receipt-scroll-area {
+        padding: 12px;
+    }
+
+    .receipt-total,
+    .total-row,
+    .selected-cust-badge {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .scan-notification {
+        right: 12px;
+        left: 12px;
+        bottom: 88px;
+        padding: 12px 14px;
+    }
+
+    .mobile-cart-float {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        height: 56px;
+        padding: 0 16px;
     }
 
     .scanner-indicator {

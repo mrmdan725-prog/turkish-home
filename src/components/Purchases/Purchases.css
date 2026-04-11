@@ -177,6 +177,20 @@
     transition: all 0.2s;
 }
 
+.details-btn-mini {
+    padding: 8px;
+    color: #2563eb;
+    border-radius: 8px;
+    transition: all 0.2s;
+    background: #eff6ff;
+    margin-left: 6px;
+}
+
+.details-btn-mini:hover {
+    background: #2563eb;
+    color: white;
+}
+
 .delete-btn-mini:hover {
     background: #fee2e2;
     color: #ef4444;
@@ -312,4 +326,51 @@
 
 .clickable-row:hover {
     background-color: #f8fafc;
+}
+
+@media (max-width: 768px) {
+    .purchases-header {
+        padding: 16px 12px;
+    }
+
+    .purchases-content {
+        padding: 12px;
+        gap: 16px;
+    }
+
+    .header-info {
+        align-items: flex-start;
+    }
+
+    .header-info h1 {
+        font-size: 1.15rem;
+    }
+
+    .p-stat-card,
+    .card-header,
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 16px;
+    }
+
+    .search-box {
+        max-width: 100%;
+    }
+
+    .purchases-table {
+        min-width: 680px;
+    }
+
+    .details-table {
+        min-width: 620px;
+    }
+
+    .modal-footer {
+        justify-content: stretch;
+    }
+
+    .secondary-btn {
+        width: 100%;
+    }
 }

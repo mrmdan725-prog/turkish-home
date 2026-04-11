@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard/Dashboard';
-import Storefront from './components/Storefront/Storefront';
-import POSDashboard from './components/POS/POSDashboard';
-import Invoices from './components/Invoices/Invoices';
-import Inventory from './components/Inventory/Inventory';
-import Customers from './components/Customers/Customers';
-import Reports from './components/Reports/Reports';
-import Settings from './components/Settings/Settings';
-import Purchases from './components/Purchases/Purchases';
-import TurkishAI from './components/TurkishAI/TurkishAI';
-import WebManager from './components/WebManager/WebManager';
 import { supabase } from './supabaseClient';
 import './App.css';
+
+const Dashboard = lazy(() => import('./components/Dashboard/Dashboard'));
+const Storefront = lazy(() => import('./components/Storefront/Storefront'));
+const POSDashboard = lazy(() => import('./components/POS/POSDashboard'));
+const Invoices = lazy(() => import('./components/Invoices/Invoices'));
+const Inventory = lazy(() => import('./components/Inventory/Inventory'));
+const Customers = lazy(() => import('./components/Customers/Customers'));
+const Reports = lazy(() => import('./components/Reports/Reports'));
+const Settings = lazy(() => import('./components/Settings/Settings'));
+const Purchases = lazy(() => import('./components/Purchases/Purchases'));
+const TurkishAI = lazy(() => import('./components/TurkishAI/TurkishAI'));
+const WebManager = lazy(() => import('./components/WebManager/WebManager'));
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -406,6 +407,75 @@ function App() {
     }
   };
 
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'storefront':
+        return <Storefront products={products} settings={settings} onSaveSale={saveSale} />;
+      case 'web_orders':
+        return <WebManager activeSubTab="orders" onInvoice={saveSale} onRefreshPending={fetchPendingCount} />;
+      case 'web_customers':
+        return <WebManager activeSubTab="customers" onInvoice={saveSale} />;
+      case 'web_history':
+        return <WebManager activeSubTab="history" onInvoice={saveSale} onRefreshPending={fetchPendingCount} />;
+      case 'dashboard':
+        return (
+          <Dashboard
+            sales={sales}
+            products={products}
+            customers={customers}
+            expenses={expenses}
+            setActiveTab={setActiveTab}
+          />
+        );
+      case 'pos':
+        return (
+          <POSDashboard
+            onSaveSale={saveSale}
+            products={products}
+            settings={settings}
+            customers={customers}
+            sales={sales}
+          />
+        );
+      case 'invoices':
+        return <Invoices sales={sales} onReturn={handleReturn} settings={settings} />;
+      case 'inventory':
+        return <Inventory products={products} setProducts={setProducts} settings={settings} purchases={purchases} setPurchases={setPurchases} />;
+      case 'customers':
+        return (
+          <Customers
+            settings={settings}
+            sales={sales}
+            setSales={setSales}
+            customers={customers}
+            setCustomers={setCustomers}
+            payments={payments}
+            setPayments={setPayments}
+            onReturn={handleReturn}
+          />
+        );
+      case 'reports':
+        return <Reports sales={sales} products={products} expenses={expenses} setExpenses={setExpenses} settings={settings} payments={payments} purchases={purchases} />;
+      case 'purchases':
+        return <Purchases purchases={purchases} setPurchases={setPurchases} products={products} settings={settings} />;
+      case 'ai':
+        return <TurkishAI sales={sales} products={products} customers={customers} expenses={expenses} payments={payments} purchases={purchases} setActiveTab={setActiveTab} />;
+      case 'settings':
+        return (
+          <Settings
+            settings={settings}
+            onSaveSettings={saveSettings}
+            onBackup={handleBackup}
+            onRestore={handleRestore}
+            onResetData={resetData}
+            onCloudSync={syncLocalToCloud}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className={`app-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
       <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
@@ -427,63 +497,16 @@ function App() {
           </button>
           <span className="mobile-brand">TURKISH HOME</span>
         </div>
-        {activeTab === 'storefront' && (
-          <Storefront products={products} settings={settings} onSaveSale={saveSale} />
-        )}
-        {activeTab === 'web_orders' && (
-          <WebManager activeSubTab="orders" onInvoice={saveSale} onRefreshPending={fetchPendingCount} />
-        )}
-        {activeTab === 'web_customers' && (
-          <WebManager activeSubTab="customers" onInvoice={saveSale} />
-        )}
-        {activeTab === 'web_history' && (
-          <WebManager activeSubTab="history" onInvoice={saveSale} onRefreshPending={fetchPendingCount} />
-        )}
-        {activeTab === 'dashboard' && (
-          <Dashboard
-            sales={sales}
-            products={products}
-            customers={customers}
-            expenses={expenses}
-            setActiveTab={setActiveTab}
-          />
-        )}
-        {activeTab === 'pos' && (
-          <POSDashboard
-            onSaveSale={saveSale}
-            products={products}
-            settings={settings}
-            customers={customers}
-            sales={sales}
-          />
-        )}
-        {activeTab === 'invoices' && <Invoices sales={sales} onReturn={handleReturn} settings={settings} />}
-        {activeTab === 'inventory' && <Inventory products={products} setProducts={setProducts} settings={settings} purchases={purchases} setPurchases={setPurchases} />}
-        {activeTab === 'customers' && (
-          <Customers
-            settings={settings}
-            sales={sales}
-            setSales={setSales}
-            customers={customers}
-            setCustomers={setCustomers}
-            payments={payments}
-            setPayments={setPayments}
-            onReturn={handleReturn}
-          />
-        )}
-        {activeTab === 'reports' && <Reports sales={sales} products={products} expenses={expenses} setExpenses={setExpenses} settings={settings} payments={payments} purchases={purchases} />}
-        {activeTab === 'purchases' && <Purchases purchases={purchases} setPurchases={setPurchases} products={products} settings={settings} />}
-        {activeTab === 'ai' && <TurkishAI sales={sales} products={products} customers={customers} expenses={expenses} payments={payments} purchases={purchases} setActiveTab={setActiveTab} />}
-        {activeTab === 'settings' && (
-          <Settings
-            settings={settings}
-            onSaveSettings={saveSettings}
-            onBackup={handleBackup}
-            onRestore={handleRestore}
-            onResetData={resetData}
-            onCloudSync={syncLocalToCloud}
-          />
-        )}
+        <Suspense
+          fallback={
+            <div className="tab-loading-state">
+              <div className="tab-loading-spinner"></div>
+              <p>جاري تحميل الصفحة...</p>
+            </div>
+          }
+        >
+          {renderActiveTab()}
+        </Suspense>
       </main>
     </div>
   );

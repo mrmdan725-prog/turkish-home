@@ -13,6 +13,8 @@
   --odoo-purple: #714B67;
   --odoo-gray: #E7E9ED;
   --sidebar-width: 260px;
+  --app-height: 100dvh;
+  --content-gutter: 24px;
 }
 
 * {
@@ -28,10 +30,131 @@ body {
   overflow: hidden;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
 .app-container {
   display: flex;
-  height: 100vh;
+  height: var(--app-height);
   width: 100vw;
+  overflow: hidden;
+}
+
+.main-content {
+  min-width: 0;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --content-gutter: 16px;
+  }
+
+  .dashboard-container,
+  .pos-container,
+  .inventory-container,
+  .invoices-container,
+  .customers-container,
+  .reports-container,
+  .settings-container,
+  .store-container {
+    height: auto;
+    min-height: calc(var(--app-height) - var(--header-height));
+  }
+
+  .web-manager {
+    height: auto;
+    min-height: calc(var(--app-height) - var(--header-height));
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --content-gutter: 12px;
+  }
+
+  .app-container {
+    width: 100%;
+  }
+
+  .main-content {
+    overflow: auto;
+  }
+
+  .modal-overlay,
+  .web-modal-overlay,
+  .sidebar-overlay {
+    padding: 12px;
+  }
+
+  .modal-content,
+  .modern-modal,
+  .receipt-modal,
+  .return-modal,
+  .glass-modal,
+  .web-modal,
+  .print-modal-v2,
+  .cust-search-modal,
+  .link-invoice-modal {
+    width: min(100%, 100vw - 24px) !important;
+    max-width: min(100%, 100vw - 24px) !important;
+    max-height: calc(var(--app-height) - 24px);
+    border-radius: 18px;
+  }
+
+  .modal-body,
+  .web-modal .modal-body,
+  .modern-modal .modal-body {
+    padding: 18px;
+  }
+
+  .modal-header,
+  .modal-footer,
+  .web-modal .modal-header,
+  .web-modal .modal-footer,
+  .receipt-modal-header,
+  .receipt-modal-footer {
+    padding: 16px 18px;
+  }
+
+  .invoices-table-container,
+  .customers-table-container,
+  .inventory-table-wrapper,
+  .mini-table-container,
+  .table-wrapper,
+  .po-table-wrapper,
+  .invoice-items-table,
+  .modal-items-table,
+  .inv-table,
+  .web-customers-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .invoices-table,
+  .modern-table,
+  .purchases-table,
+  .po-table,
+  .inv-table,
+  .web-customers-table,
+  .modal-items-table,
+  .invoice-items-table table {
+    min-width: 640px;
+  }
 }
 
 button {

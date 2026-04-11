@@ -119,6 +119,9 @@ const Purchases = ({ purchases = [], products = [], setPurchases, settings = {} 
                                             </td>
                                             <td className="amount-cell">{p.total.toLocaleString()} ج.م</td>
                                             <td>
+                                                <button className="details-btn-mini" onClick={() => setSelectedPurchase(p)}>
+                                                    <Plus size={16} />
+                                                </button>
                                                 <button className="delete-btn-mini" onClick={() => handleDeletePurchase(p.id)}>
                                                     <Trash2 size={16} />
                                                 </button>

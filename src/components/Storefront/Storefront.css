@@ -608,6 +608,69 @@
     .store-container .footer-grid {
         grid-template-columns: 1fr;
     }
+
+    .store-container .container {
+        padding: 0 16px;
+    }
+
+    .store-container .nav-content,
+    .store-container .nav-actions,
+    .store-container .hero-btns,
+    .store-container .features-grid,
+    .store-container .inv-meta {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .store-container .search-bar-wrapper,
+    .store-container .cart-icon-btn {
+        width: 100%;
+    }
+
+    .store-container .cart-icon-btn {
+        border-radius: 14px;
+        height: 48px;
+    }
+
+    .store-container .hero {
+        height: auto;
+        min-height: 420px;
+        padding: 64px 0;
+    }
+
+    .store-container .hero h1 {
+        font-size: 2.2rem;
+    }
+
+    .store-container .hero p {
+        font-size: 0.95rem;
+    }
+
+    .store-container .product-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 24px 0 80px;
+    }
+
+    .store-container .product-image-wrapper {
+        height: 240px;
+    }
+
+    .store-container .cart-drawer {
+        max-width: 100%;
+    }
+
+    .store-container .drawer-header,
+    .store-container .cart-items,
+    .store-container .drawer-footer,
+    .store-container .modal-image-side,
+    .store-container .modal-info-side {
+        padding: 18px;
+    }
+
+    .store-container .modal-info-side h2 {
+        font-size: 1.8rem;
+    }
 }
 
 .store-container .checkout-form {

@@ -492,3 +492,69 @@
 .action-card.warning:hover {
     border-color: #f59e0b;
 }
+
+@media (max-width: 1024px) {
+    .settings-header {
+        padding: 16px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .save-settings-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .settings-content {
+        flex-direction: column;
+        height: auto;
+        padding: 16px;
+        overflow: auto;
+    }
+
+    .settings-nav {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+    }
+
+    .nav-item {
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .settings-content {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .settings-panel {
+        padding: 18px;
+    }
+
+    .form-grid,
+    .backup-actions {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .form-group.full-width {
+        grid-column: span 1;
+    }
+
+    .add-category-box,
+    .toggle-group {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .saved-notification {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        justify-content: center;
+    }
+}

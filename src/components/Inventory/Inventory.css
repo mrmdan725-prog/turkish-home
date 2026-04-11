@@ -1111,3 +1111,73 @@
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 768px) {
+    .inventory-header,
+    .inventory-main-content {
+        padding: 12px;
+    }
+
+    .header-title {
+        align-items: flex-start;
+    }
+
+    .header-title h1 {
+        font-size: 1.15rem;
+    }
+
+    .header-navigation {
+        width: 100%;
+    }
+
+    .nav-tab {
+        flex: 0 0 auto;
+        justify-content: center;
+        padding: 10px 14px;
+        white-space: nowrap;
+    }
+
+    .inventory-controls,
+    .filter-group,
+    .po-summary-footer,
+    .modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .category-chips {
+        gap: 6px;
+    }
+
+    .chip {
+        padding: 8px 12px;
+        white-space: nowrap;
+    }
+
+    .stat-card,
+    .po-container {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .more-dropdown {
+        left: auto;
+        right: 0;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer,
+    .print-preview-container {
+        padding: 16px;
+    }
+
+    .barcode-tag {
+        width: 100%;
+        max-width: 240px;
+    }
+
+    .generated-preview-grid {
+        grid-template-columns: 1fr !important;
+    }
+}

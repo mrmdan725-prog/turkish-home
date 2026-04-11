@@ -460,3 +460,68 @@
     align-items: center;
     gap: 8px;
 }
+
+@media (max-width: 1024px) {
+    .invoices-header {
+        padding: 16px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .invoices-content {
+        flex-direction: column;
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .invoice-detail-side {
+        width: 100%;
+        position: static;
+        height: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-info {
+        align-items: flex-start;
+    }
+
+    .header-info h1 {
+        font-size: 1.2rem;
+    }
+
+    .mini-stat-box {
+        width: 100%;
+    }
+
+    .invoices-content {
+        padding: 12px;
+    }
+
+    .invoices-table th,
+    .invoices-table td {
+        padding: 12px;
+    }
+
+    .detail-card,
+    .return-modal {
+        border-radius: 16px;
+    }
+
+    .detail-info,
+    .detail-items,
+    .detail-footer {
+        padding: 16px;
+    }
+
+    .action-row,
+    .return-item-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .qty-input-group {
+        justify-content: space-between;
+    }
+}
