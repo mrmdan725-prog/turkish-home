@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Settings as SettingsIcon, Store, Printer, Database, Bell, Shield, Save, RefreshCw, Image as ImageIcon, Upload, X as XIcon, MessageCircle, QrCode, CheckCircle2, Layers, Plus, Trash2, Lock, Unlock, Volume2 } from 'lucide-react';
 import './Settings.css';
 import Logo from '../Common/Logo';
@@ -16,6 +16,10 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
     const logoInputRef = useRef(null);
     const heroInputRef = useRef(null);
     const restoreInputRef = useRef(null);
+
+    useEffect(() => {
+        setLocalSettings({ ...settings });
+    }, [settings]);
 
     const handleSave = () => {
         if (onSaveSettings) {
@@ -123,6 +127,43 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
             ...localSettings,
             heroImages: currentImages.filter((_, index) => index !== indexToRemove)
         });
+    };
+
+    const handleFileRestore = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const importedData = JSON.parse(event.target?.result);
+                if (!importedData || typeof importedData !== 'object') {
+                    throw new Error('invalid_backup');
+                }
+
+                if (onRestore) {
+                    onRestore(importedData);
+                }
+
+                alert('تمت استعادة النسخة الاحتياطية بنجاح.');
+            } catch (error) {
+                console.error('Restore failed:', error);
+                alert('ملف النسخة الاحتياطية غير صالح أو تالف.');
+            } finally {
+                if (restoreInputRef.current) {
+                    restoreInputRef.current.value = '';
+                }
+            }
+        };
+
+        reader.onerror = () => {
+            alert('تعذر قراءة ملف النسخة الاحتياطية.');
+            if (restoreInputRef.current) {
+                restoreInputRef.current.value = '';
+            }
+        };
+
+        reader.readAsText(file);
     };
 
     return (
@@ -376,7 +417,7 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
                                     <Trash2 size={32} color="#ef4444" />
                                     <h4 style={{ color: '#ef4444' }}>تهيئة البيانات (Test Mode)</h4>
                                     <p style={{ color: '#b91c1c' }}>حذف جميع المبيعات والعملاء والمصروفات مع <strong>الإبقاء على المنتجات</strong>.</p>
-                                    <button className="reset-btn" style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', marginTop: 'auto', cursor: 'pointer' }}>حذف البيانات</button>
+                                    <button className="reset-btn" onClick={onResetData} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', marginTop: 'auto', cursor: 'pointer' }}>حذف البيانات</button>
                                 </div>
                             </div>
 
@@ -462,7 +503,7 @@ const Settings = ({ settings, onSaveSettings, onBackup, onRestore, onResetData, 
                             <div className="danger-zone mt-4">
                                 <h4>منطقة الخطر</h4>
                                 <p>مسح كافة بيانات النظام والبدء من جديد (لا يمكن التراجع)</p>
-                                <button className="clear-data-btn">مسح كافة البيانات</button>
+                                <button className="clear-data-btn" onClick={onResetData}>مسح كافة البيانات</button>
                             </div>
                         </div>
                     )}
